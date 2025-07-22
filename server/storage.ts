@@ -221,12 +221,15 @@ export class MemStorage implements IStorage {
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     const id = this.currentId++;
     const product: Product = { 
-      ...insertProduct, 
+      ...insertProduct,
       id, 
       rating: "0", 
       reviewCount: 0, 
       isActive: true, 
-      createdAt: new Date() 
+      createdAt: new Date(),
+      inventory: insertProduct.inventory || 0,
+      categoryId: insertProduct.categoryId || null,
+      vendorId: insertProduct.vendorId || null
     };
     this.products.set(id, product);
     return product;
@@ -245,7 +248,11 @@ export class MemStorage implements IStorage {
 
   async createCategory(insertCategory: InsertCategory): Promise<Category> {
     const id = this.currentId++;
-    const category: Category = { ...insertCategory, id };
+    const category: Category = { 
+      ...insertCategory, 
+      id,
+      description: insertCategory.description || null
+    };
     this.categories.set(id, category);
     return category;
   }
@@ -256,7 +263,13 @@ export class MemStorage implements IStorage {
 
   async createVendor(insertVendor: InsertVendor): Promise<Vendor> {
     const id = this.currentId++;
-    const vendor: Vendor = { ...insertVendor, id, rating: "0" };
+    const vendor: Vendor = { 
+      ...insertVendor, 
+      id, 
+      rating: "0",
+      email: insertVendor.email || null,
+      phone: insertVendor.phone || null
+    };
     this.vendors.set(id, vendor);
     return vendor;
   }
@@ -267,7 +280,13 @@ export class MemStorage implements IStorage {
 
   async createOrder(insertOrder: InsertOrder): Promise<Order> {
     const id = this.currentId++;
-    const order: Order = { ...insertOrder, id, orderDate: new Date() };
+    const order: Order = { 
+      ...insertOrder, 
+      id, 
+      orderDate: new Date(),
+      shippedDate: insertOrder.shippedDate || null,
+      deliveredDate: insertOrder.deliveredDate || null
+    };
     this.orders.set(id, order);
     return order;
   }
@@ -294,7 +313,8 @@ export class MemStorage implements IStorage {
       id, 
       registrationDate: new Date(),
       totalSpent: "0",
-      orderCount: 0
+      orderCount: 0,
+      phone: insertCustomer.phone || null
     };
     this.customers.set(id, customer);
     return customer;
@@ -314,7 +334,11 @@ export class MemStorage implements IStorage {
       ...insertReview, 
       id, 
       isVerified: false,
-      reviewDate: new Date()
+      reviewDate: new Date(),
+      title: insertReview.title || null,
+      content: insertReview.content || null,
+      sentiment: insertReview.sentiment || null,
+      vendorResponse: insertReview.vendorResponse || null
     };
     this.reviews.set(id, review);
     return review;
@@ -356,7 +380,8 @@ export class MemStorage implements IStorage {
       clicks: 0,
       impressions: 0,
       conversions: 0,
-      isActive: true
+      isActive: true,
+      endDate: insertCampaign.endDate || null
     };
     this.marketingCampaigns.set(id, campaign);
     return campaign;
@@ -398,7 +423,11 @@ export class MemStorage implements IStorage {
 
   async createSalesMetric(insertMetric: InsertSalesMetric): Promise<SalesMetric> {
     const id = this.currentId++;
-    const metric: SalesMetric = { ...insertMetric, id };
+    const metric: SalesMetric = { 
+      ...insertMetric, 
+      id,
+      newCustomers: insertMetric.newCustomers || null
+    };
     this.salesMetrics.set(id, metric);
     return metric;
   }

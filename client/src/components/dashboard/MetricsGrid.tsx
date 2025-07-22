@@ -60,12 +60,12 @@ interface MetricsGridProps {
 }
 
 const MetricsGrid = memo(({ metrics }: MetricsGridProps) => {
-  const metricCards = [
+  const metricCards: MetricCardProps[] = [
     {
       label: 'Total Sales',
       value: metrics.totalSales,
       change: metrics.salesChange,
-      changeType: parseFloat(metrics.salesChange) >= 0 ? 'positive' : 'negative' as const,
+      changeType: parseFloat(metrics.salesChange) >= 0 ? 'positive' : 'negative',
       icon: DollarSign,
       iconBgColor: 'bg-primary/10',
       iconColor: 'text-primary',
@@ -74,7 +74,7 @@ const MetricsGrid = memo(({ metrics }: MetricsGridProps) => {
       label: 'Orders',
       value: metrics.totalOrders,
       change: metrics.ordersChange,
-      changeType: parseFloat(metrics.ordersChange) >= 0 ? 'positive' : 'negative' as const,
+      changeType: parseFloat(metrics.ordersChange) >= 0 ? 'positive' : 'negative',
       icon: ShoppingCart,
       iconBgColor: 'bg-secondary/10',
       iconColor: 'text-secondary',
@@ -83,7 +83,7 @@ const MetricsGrid = memo(({ metrics }: MetricsGridProps) => {
       label: 'Avg Order Value',
       value: metrics.avgOrderValue,
       change: metrics.aovChange,
-      changeType: parseFloat(metrics.aovChange) >= 0 ? 'positive' : 'negative' as const,
+      changeType: parseFloat(metrics.aovChange) >= 0 ? 'positive' : 'negative',
       icon: Calculator,
       iconBgColor: 'bg-yellow-500/10',
       iconColor: 'text-yellow-600',
@@ -92,7 +92,7 @@ const MetricsGrid = memo(({ metrics }: MetricsGridProps) => {
       label: 'Return Rate',
       value: metrics.returnRate,
       change: metrics.returnRateChange,
-      changeType: parseFloat(metrics.returnRateChange) <= 0 ? 'positive' : 'negative' as const,
+      changeType: parseFloat(metrics.returnRateChange) <= 0 ? 'positive' : 'negative',
       icon: RotateCcw,
       iconBgColor: 'bg-green-500/10',
       iconColor: 'text-green-600',

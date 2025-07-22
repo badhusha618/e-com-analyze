@@ -46,7 +46,7 @@ const MarketingPerformance = memo(({ campaigns }: MarketingPerformanceProps) => 
       <CardContent>
         <div className="space-y-6">
           {campaigns.slice(0, 4).map((campaign) => {
-            const roi = calculateROI(campaign.revenue, campaign.spent);
+            const roi = calculateROI(campaign.revenue || '0', campaign.spent || '0');
             const performanceWidth = getPerformanceWidth(roi);
             const channelColor = getChannelColor(campaign.channel);
 
@@ -67,8 +67,8 @@ const MarketingPerformance = memo(({ campaigns }: MarketingPerformanceProps) => 
                   />
                 </div>
                 <div className="flex justify-between text-xs text-gray-500">
-                  <span>${parseFloat(campaign.spent).toLocaleString()} spent</span>
-                  <span>${parseFloat(campaign.revenue).toLocaleString()} revenue</span>
+                  <span>${parseFloat(campaign.spent || '0').toLocaleString()} spent</span>
+                  <span>${parseFloat(campaign.revenue || '0').toLocaleString()} revenue</span>
                 </div>
               </div>
             );
