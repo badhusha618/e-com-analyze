@@ -1,0 +1,88 @@
+Your task is to develop the React frontend components and Redux state management logic for a dedicated Products Page within our Ecommerce Sales Analysis and Optimization Solution. This page is crucial for product managers to gain deep insights into product performance, customer sentiment, and inventory status.
+I. Core Technologies & Project Context:
+• Frontend Framework: React.
+• State Management: Redux for managing application-wide state.
+• Build Tool: Vite for fast development and optimised builds.
+• Language: TypeScript for type safety across all components and state logic.
+• Styling: Tailwind CSS for all component styling.
+• Overall Goal: The solution aims to provide an insightful analytics dashboard to track sales, marketing effectiveness, and product/vendor reviews to optimise revenue.
+II. Products Page Specific Requirements:
+1. Page Goal & Purpose:
+    ◦ Create a visually appealing and highly interactive Products Page that serves as a central hub for detailed product analysis.
+    ◦ Enable users to quickly identify high and low-performing products, understand customer feedback, and assess inventory health.
+2. Key Data & Visualisations to Display:
+    ◦ Product Overview List: Display a sortable and filterable list of products showing:
+        ▪ Product Name, Category, Price, and associated Vendor.
+        ▪ Total Sales Volume and Revenue Generated.
+        ▪ Average Product Rating and Total Review Count.
+        ▪ Product Health Score (e.g., calculated based on recent sales growth, profit margin, inventory turnover).
+        ▪ ABC Analysis Classification (e.g., A: Top 20% revenue, B: Middle 30%, C: Bottom 50%).
+    ◦ Detailed Product View (on click/drill-down): When a product is selected, display:
+        ▪ More granular sales trends (e.g., weekly sales velocity).
+        ▪ Customer Sentiment Breakdown (overall sentiment score, distribution of positive/negative reviews).
+        ▪ Frequently Mentioned Issues/Keywords from reviews.
+        ▪ Vendor Performance Metrics (e.g., vendor's average rating, on-time delivery rate, return rate for products from this vendor).
+    ◦ Visualisations:
+        ▪ Implement interactive charts/graphs (e.g., using Chart.js as a reference) for:
+            • Sales Trends (daily/weekly/monthly for selected product or aggregated).
+            • Product Health Score Distribution across categories.
+            • Review Sentiment Trends over time for specific products.
+3. UI/UX Components:
+    ◦ Design the layout using Tailwind CSS, ensuring a mobile-first responsive approach.
+    ◦ Develop reusable React components for:
+        ▪ ProductCard (for list items or compact displays).
+        ▪ ProductDetailsPanel (for the detailed view).
+        ▪ MetricBadge (to display KPIs like sales, ratings, health scores).
+        ▪ FilterBar and SortDropdown for data manipulation.
+        ▪ Appropriate chart components to render the visualisations.
+    ◦ Ensure clear prop passing between components.
+    ◦ Use React fragments (<>...</>) to avoid unnecessary div wrappers, and self-closing tags where no children are needed.
+4. Redux State Management:
+    ◦ Create a dedicated Redux store module (e.g., src/redux/products) to manage the state related to the Products Page. This should include:
+        ▪ The list of all products.
+        ▪ Current filters applied (e.g., category, vendor, rating range).
+        ▪ Current sorting criteria (e.g., by sales, by rating, ascending/descending).
+        ▪ Loading and error states for data fetching.
+        ▪ State for the currently selected/detailed product.
+    ◦ Define Redux actions (e.g., FETCH_PRODUCTS_REQUEST, FETCH_PRODUCTS_SUCCESS, SET_PRODUCT_FILTERS, SORT_PRODUCTS, SELECT_PRODUCT).
+    ◦ Implement action creators for all defined actions.
+    ◦ Develop reducers to update the state immutably based on dispatched actions.
+    ◦ Create Redux selectors to efficiently retrieve and transform data from the store, optimising for re-renders.
+    ◦ Ensure components are connected to the Redux store using react-redux hooks (e.g., useSelector, useDispatch) or the connect HOC.
+5. Data Fetching & Integration:
+    ◦ Data will be retrieved from the Spring Boot REST API endpoints (e.g., /api/products, /api/products/{productId}, /api/vendors/{vendorId}).
+    ◦ Implement data fetching logic using custom React Hooks (e.g., useFetchProducts, useProductAnalytics) to abstract API calls and manage loading/error states within components.
+    ◦ Implement robust error handling with try-catch blocks and potentially a global ErrorBoundary for unexpected UI errors.
+6. Folder Structure:
+    ◦ Organise components into their own folders (e.g., src/pages/ProductsPage.tsx, src/components/products/, src/components/charts/) [previous prompt, 503, 507, 617, 620, 637].
+    ◦ Create a dedicated src/redux/products/ directory for product-related Redux actions, reducers, and selectors [previous prompt, 515].
+    ◦ Establish a src/hooks/ directory for reusable custom hooks [previous prompt, 343, 512, 562].
+    ◦ Use src/utils/ or src/services/ for reusable helper functions (e.g., data formatting, aggregation logic) [previous prompt, 520, 625].
+    ◦ Implement absolute imports (e.g., import ProductCard from '@/components/products/ProductCard') for cleaner and more readable paths [previous prompt, 518, 628].
+III. Quality & Best Practices:
+• TypeScript: Apply strict TypeScript notation to all components, props, Redux state, actions, and API response interfaces [previous prompt, 7, 266, 392, 558]. Ensure optional props explicitly include undefined in their type definition. Avoid any and unnecessary type assertions.
+• Styling: Use Tailwind CSS exclusively for styling. Ensure all Tailwind classes are applied correctly and, if necessary, prefixed to avoid potential conflicts.
+• Performance Optimization:
+    ◦ Utilise React.memo for functional components that do not need to re-render when their props haven't changed [previous prompt, 523].
+    ◦ Ensure unique key props are used when rendering lists of products or reviews to prevent rendering issues and inefficiencies [previous prompt, 576, 580].
+    ◦ Consider lazy-loading/code splitting for larger components (e.g., the detailed product view or complex charts) to reduce initial bundle size [previous prompt, 560].
+• Testing Strategy:
+    ◦ Adopt a Test-Driven Development (TDD) approach: Write tests first, then the code, then run the tests and update the code until tests pass [previous prompt, 189, 60, 554].
+    ◦ Develop unit tests for individual React components (focus on component behavior and user interactions, not internal implementation details) using React Testing Library (RTL) [previous prompt, 650, 656, 666].
+    ◦ Write integration tests to verify how different components interact, especially with Redux state or API calls [previous prompt, 652].
+    ◦ Use Jest as the primary test runner [previous prompt, 655].
+    ◦ Implement mocking for external dependencies (e.g., API services) in tests to ensure isolation.
+    ◦ Let the AI write tests for new components and features, ensuring guard rails and preventing regressions [previous prompt, 361, 500].
+IV. Cursor AI Workflow Integration:
+• Project Rules (.cursorrules): Ensure adherence to the established .cursorrules (from the previous prompt) for consistent tech stack (React, Redux, TypeScript, Tailwind), code style, and naming conventions (PascalCase for components/types, camelCase for variables/functions). The agent can "self-improve" these rules during development sessions.
+• Agent Mode (⌘.): For implementing complex features on the Products Page, always use Agent mode. Enable YOLO mode in settings to allow the agent to automatically run tests (npm test, vitest) and fix build errors (tsc, nr build) iteratively until they pass [previous prompt, 186, 190, 494].
+• Clear Instructions: Provide clear, detailed, and granular instructions for each task (e.g., "Implement the ProductCard component displaying product name, price, and average rating," or "Set up Redux actions and reducer for product filtering").
+• Context Management (@ symbol, Notepads):
+    ◦ Use the @ symbol to bring specific file contexts into the conversation (e.g., @src/types/product.ts, @src/redux/products/actions.ts, @src/components/products/ProductList.tsx).
+    ◦ Reference Notepads (e.g., @ProductDataSchema, @ReduxPatterns) for consistent adherence to architectural decisions or frequently used code snippets/prompts.
+• Iterative Development & Debugging:
+    ◦ Use Ctrl + K for quick code modifications and Ctrl + L to ask questions or refine existing code.
+    ◦ For debugging, instruct Cursor to add liberal debug statements (console.log, console.warn, console.error) to the relevant code. Then, run the code, collect the log output, and feed it back to Cursor for analysis and targeted fixes.
+    ◦ Utilise the bug finder feature (Command Shift P -> "bug finder") to proactively identify potential issues introduced during development.
+• Version Control: Commit early, commit often to maintain a stable development history. Use AI-generated commit messages (magic wand icon) to efficiently document changes, and fine-tune its verbosity via .cursorrules if desired.
+By following these instructions, Cursor AI should be able to assist in developing a high-quality, maintainable, and efficient Products Page for your Ecommerce Sales Analysis and Optimization Solution.

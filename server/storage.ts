@@ -118,12 +118,52 @@ export class MemStorage implements IStorage {
   }
 
   private initializeSampleData() {
+    // Sample categories
+    const sampleCategories = [
+      { name: "Electronics", description: "Electronic devices and accessories" },
+      { name: "Gaming", description: "Gaming equipment and accessories" },
+      { name: "Wearables", description: "Smart watches and fitness trackers" },
+      { name: "Computer Accessories", description: "Keyboards, mice, and peripherals" }
+    ];
+
+    sampleCategories.forEach(category => {
+      const id = this.currentId++;
+      this.categories.set(id, { 
+        id, 
+        ...category,
+        description: category.description || null
+      } as Category);
+    });
+
+    // Sample vendors
+    const sampleVendors = [
+      { name: "TechCorp", email: "contact@techcorp.com", phone: "+1-555-0101", rating: "4.5" },
+      { name: "GameSupply", email: "sales@gamesupply.com", phone: "+1-555-0102", rating: "4.2" },
+      { name: "WearableTech", email: "info@wearabletech.com", phone: "+1-555-0103", rating: "4.7" },
+      { name: "AccessoryPro", email: "support@accessorypro.com", phone: "+1-555-0104", rating: "4.0" }
+    ];
+
+    sampleVendors.forEach(vendor => {
+      const id = this.currentId++;
+      this.vendors.set(id, { 
+        id, 
+        ...vendor,
+        email: vendor.email || null,
+        phone: vendor.phone || null,
+        rating: vendor.rating || "0"
+      } as Vendor);
+    });
+
     // Sample products
     const sampleProducts = [
-      { name: "Premium Headphones", sku: "PHD-001", price: "199.99", costPrice: "120.00", inventory: 456, rating: "4.8", reviewCount: 234 },
-      { name: "Wireless Mouse", sku: "WM-002", price: "29.99", costPrice: "18.00", inventory: 234, rating: "4.6", reviewCount: 156 },
-      { name: "Gaming Keyboard", sku: "GK-003", price: "79.99", costPrice: "45.00", inventory: 12, rating: "3.2", reviewCount: 89 },
-      { name: "Smart Watch", sku: "SW-004", price: "299.99", costPrice: "180.00", inventory: 78, rating: "4.7", reviewCount: 312 }
+      { name: "Premium Headphones", sku: "PHD-001", price: "199.99", costPrice: "120.00", inventory: 456, rating: "4.8", reviewCount: 234, categoryId: 1, vendorId: 1 },
+      { name: "Wireless Mouse", sku: "WM-002", price: "29.99", costPrice: "18.00", inventory: 234, rating: "4.6", reviewCount: 156, categoryId: 4, vendorId: 4 },
+      { name: "Gaming Keyboard", sku: "GK-003", price: "79.99", costPrice: "45.00", inventory: 12, rating: "3.2", reviewCount: 89, categoryId: 2, vendorId: 2 },
+      { name: "Smart Watch", sku: "SW-004", price: "299.99", costPrice: "180.00", inventory: 78, rating: "4.7", reviewCount: 312, categoryId: 3, vendorId: 3 },
+      { name: "Bluetooth Speaker", sku: "BS-005", price: "89.99", costPrice: "52.00", inventory: 156, rating: "4.4", reviewCount: 178, categoryId: 1, vendorId: 1 },
+      { name: "Gaming Monitor", sku: "GM-006", price: "349.99", costPrice: "210.00", inventory: 45, rating: "4.6", reviewCount: 245, categoryId: 2, vendorId: 2 },
+      { name: "Fitness Tracker", sku: "FT-007", price: "149.99", costPrice: "85.00", inventory: 89, rating: "4.1", reviewCount: 134, categoryId: 3, vendorId: 3 },
+      { name: "Mechanical Keyboard", sku: "MK-008", price: "129.99", costPrice: "75.00", inventory: 67, rating: "4.8", reviewCount: 289, categoryId: 4, vendorId: 4 }
     ];
 
     sampleProducts.forEach(product => {
@@ -131,8 +171,6 @@ export class MemStorage implements IStorage {
       this.products.set(id, { 
         id, 
         ...product, 
-        categoryId: 1, 
-        vendorId: 1, 
         isActive: true, 
         createdAt: new Date() 
       } as Product);

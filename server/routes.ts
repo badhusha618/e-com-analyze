@@ -138,6 +138,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Categories
+  app.get("/api/categories", async (req, res) => {
+    try {
+      const categories = await storage.getCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
+  // Vendors
+  app.get("/api/vendors", async (req, res) => {
+    try {
+      const vendors = await storage.getVendors();
+      res.json(vendors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch vendors" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
