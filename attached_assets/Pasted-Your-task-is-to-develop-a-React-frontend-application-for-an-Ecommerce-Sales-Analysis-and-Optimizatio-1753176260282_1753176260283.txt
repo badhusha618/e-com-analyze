@@ -1,0 +1,78 @@
+Your task is to develop a React frontend application for an Ecommerce Sales Analysis and Optimization Solution. The frontend will primarily use React with Redux for state management, TypeScript for type safety, and Tailwind CSS for styling. For development speed and efficiency, we will use Vite for the project setup.
+Project Goal: To create an insightful analytics dashboard that helps e-commerce businesses track sales performance, marketing effectiveness, and product/vendor reviews to optimize revenue.
+I. Core Technologies and Configuration:
+1. Frontend Framework: React.
+2. State Management: Redux for managing application-wide state. Redux is preferred for large and complex applications requiring many states. Ensure a proper Redux store setup including reducers, actions, and action creators, and connect components to the store using the Provider component.
+3. Build Tool: Vite for fast development, instant server restarts, and optimized builds.
+4. Language: TypeScript. It is a must-have for large projects, helps block bugs, documents code better than comments, and improves developer experience. When defining optional component props, ensure undefined is manually added to the type to prevent strict optional property issues.
+5. Styling: Tailwind CSS. Ensure styles are prefixed and do not rely on the Tailwind reset unless all consumers are confirmed to use it. Specify Tailwind CSS in the .cursorrules file for consistent styling guidance.
+6. Linting & Formatting: Use ESLint for code consistency and Prettier for consistent code formatting. Configure these to run automatically during the development workflow.
+II. Key Features to Implement (Frontend Focus):
+Develop the frontend components and Redux logic for the following analytical features:
+• Sales Performance Dashboard:
+    ◦ Display high vs. low-performing products, sales velocity, profit margin comparison, and inventory turnover rates.
+    ◦ Show sales by vendor, return rates, and shipping/delivery performance.
+    ◦ Visualize daily/weekly/monthly sales trends, category-wise monthly growth, and product health scorecards.
+• Customer Sentiment & Review Analysis:
+    ◦ Implement components to display product review analytics, including sentiment analysis (e.g., using NLP results from the backend).
+    ◦ Highlight low-rated products and vendors, and analyze review trends over time.
+    ◦ Show the impact of vendor responses on future ratings.
+• Marketing Optimization Tools:
+    ◦ Create dashboards for campaign performance tracking (ROI by channel, customer acquisition costs, lifetime value by acquisition source).
+    ◦ Visualize customer segmentation (RFM analysis).
+• Real-Time Alerts Display:
+    ◦ Develop UI components to display automated alerts for sales anomalies (e.g., daily declines) and negative review spikes.
+III. Architecture and Best Practices for Frontend:
+1. Folder Structure:
+    ◦ Organise components into their own folders within a src/components directory to promote modularity and reusability.
+    ◦ Create dedicated folders for reusable React Hooks (e.g., src/hooks) and context (e.g., src/context) that are shared across multiple components.
+    ◦ Establish a src/utils or src/services directory for reusable helper functions (e.g., for data formatting, API requests) that are not tied to specific components.
+    ◦ Avoid deep nesting of component folders; generally, two levels are sufficient.
+2. Component Design:
+    ◦ Aim for a simple component structure to enhance readability, debugging, and feature addition.
+    ◦ Ensure clear prop passing between components.
+    ◦ Prioritise reusable components and avoid duplicating code for similar functionalities.
+    ◦ Use React fragments (<>...</>) instead of unnecessary div wrappers to avoid "div hell" in the DOM.
+    ◦ Employ self-closing tags for components that do not take children.
+    ◦ Follow PascalCase for React components and TypeScript interfaces/type aliases, and camelCase for JavaScript data types.
+3. State Management (Redux Specific):
+    ◦ Manage states efficiently, minimizing unnecessary re-renders.
+    ◦ For complex local component state, consider useReducer if a component exceeds four useState hooks or if the state is complex (e.g., an object with deeper levels).
+4. Imports:
+    ◦ Maintain a structured import order (e.g., built-in, external, internal).
+    ◦ Implement absolute imports (e.g., @/components/ComponentName) for cleaner and more readable paths.
+5. Error Handling:
+    ◦ Implement effective error handling, including catching errors (e.g., React Error Boundary, try-catch blocks) and logging them (e.g., to a logging service).
+6. Performance Optimization:
+    ◦ Use React.memo or shouldComponentUpdate to optimize rendering by preventing unnecessary re-renders when props or state have not changed.
+    ◦ Consider lazy-loading/code splitting for larger parts of the application to reduce initial bundle size and improve load times.
+7. Testing:
+    ◦ Adopt a Test-Driven Development (TDD) approach: Write tests first, then the code, then run the tests and update the code until tests pass.
+    ◦ Focus on unit tests for individual components (behavior over implementation details) and integration tests for how components work together.
+    ◦ Use Jest as the primary test runner and React Testing Library (RTL) for user-centric testing interactions with the DOM.
+    ◦ For E2E (End-to-End) testing, Cypress is a recommended tool to simulate full user flows across the application.
+    ◦ Let the AI write tests to ensure guard rails and prevent future code regressions.
+    ◦ Ensure unique key props when mapping over arrays to prevent rendering issues and inefficiencies.
+IV. Cursor AI Workflow Instructions:
+To ensure an efficient and high-quality development process, follow these guidelines when interacting with Cursor AI:
+1. Establish Project-Specific Rules (.cursorrules):
+    ◦ Create a .cursorrules file in the project root. This file will serve as the "constitution" for the project, containing the tech stack, critical patterns, naming conventions, and any key limitations. For example:
+    ◦ You can have the agent "self-improve" these rules based on coding sessions.
+2. Leverage Cursor Agent Mode:
+    ◦ For complex, multi-step tasks, always use Agent mode (Command + period or ⌘. ).
+    ◦ Enable YOLO mode in settings to allow the agent to run tests and fix build errors automatically, iterating until tests pass.
+3. Write Clear and Detailed Instructions:
+    ◦ For significant tasks, prompt Cursor with clear, detailed requirements, as if writing a ticket for a junior developer.
+4. Manage Context Effectively:
+    ◦ Use the @ symbol to bring specific file contexts (or even directories with caution) into the conversation, ensuring the AI has relevant information.
+    ◦ For frequently used prompts or architectural guidelines, create Notepads and reference them using the @ syntax.
+    ◦ Keep conversations short and focused. If the AI is stuck in a loop or losing context, start a new conversation with tweaked requirements.
+5. Iterative Development and Debugging:
+    ◦ Use Ctrl + K for quick code generation and direct file edits.
+    ◦ Use Ctrl + L to chat with the codebase, asking Cursor to improve code or explain sections.
+    ◦ For debugging, ask Cursor to add liberal debug statements (console.log, console.warn, console.error), then run the code, and feed the log output back to Cursor for analysis and targeted fixes.
+    ◦ Use the bug finder feature (Command Shift P -> "bug finder") to identify potential issues introduced by changes.
+6. Version Control:
+    ◦ Commit early, commit often. While Cursor creates checkpoints, rely on git for maintaining a known-good state, especially during complex conversations.
+    ◦ Utilize AI-generated commit messages (magic wand icon in source control) to save time and ensure good commit hygiene, tweaking behavior with .cursorrules if needed.
+By adhering to these guidelines, Cursor AI can be a powerful assistant in developing a robust and efficient Ecommerce Sales Analysis and Optimization Solution with a React frontend, Redux state management, TypeScript, and Tailwind CSS.
