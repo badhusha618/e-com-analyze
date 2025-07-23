@@ -1,10 +1,15 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import authRoutes from "./authRoutes";
+import { authenticateToken, type AuthRequest } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Dashboard metrics
-  app.get("/api/dashboard/metrics", async (req, res) => {
+  // Authentication routes
+  app.use("/api/auth", authRoutes);
+
+  // Dashboard metrics (protected)
+  app.get("/api/dashboard/metrics", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const metrics = await storage.getDashboardMetrics();
       res.json(metrics);

@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, LogOut, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TopBarProps {
   title?: string;
@@ -19,6 +29,7 @@ interface TopBarProps {
 const TopBar = memo(({ title = 'Sales Dashboard', unreadAlerts = 0 }: TopBarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateRange, setDateRange] = useState('7days');
+  const { user, logout } = useAuth();
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -27,6 +38,17 @@ const TopBar = memo(({ title = 'Sales Dashboard', unreadAlerts = 0 }: TopBarProp
 
   const handleNotificationClick = () => {
     // TODO: Implement notification panel
+  };
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const getUserInitials = (user: any) => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user?.username?.[0]?.toUpperCase() || 'U';
   };
 
   return (
@@ -77,6 +99,38 @@ const TopBar = memo(({ title = 'Sales Dashboard', unreadAlerts = 0 }: TopBarProp
               </Badge>
             )}
           </Button>
+
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.profileImageUrl || ''} alt={user?.username || ''} />
+                  <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.firstName && user?.lastName 
+                      ? `${user.firstName} ${user.lastName}` 
+                      : user?.username
+                    }
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
