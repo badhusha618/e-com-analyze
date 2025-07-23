@@ -1,0 +1,199 @@
+Backend (Spring Boot) Prompt
+*"Design a Spring Boot admin system for managing region-specific currency formats with:
+
+REST endpoints (/admin/region-currencies) for:
+
+Assigning currency formats (symbol position, decimal/thousand separators) to regions
+
+Overriding defaults per region (e.g., Euro formatting for non-EU countries)
+
+Bulk importing regional standards (CLDR data)
+
+Database schema storing:
+
+Region (country/territory code)
+
+Currency code (ISO 4217)
+
+Formatting rules (symbol, decimal places, positive/negative patterns)
+
+Is_active flag
+
+Features:
+
+Validation against Unicode CLDR standards
+
+Fallback to currency defaults when region not configured
+
+Audit log of admin changes
+Describe the API contracts, security model (ADMIN-only), and synchronization requirements without code."*
+
+Frontend (React Admin UI) Prompt
+*"Plan an admin interface for regional currency formats with:
+
+Interactive world map/region picker
+
+Side-by-side comparison of:
+
+Current region settings
+
+Currency defaults
+
+CLDR standards
+
+Editing capabilities for:
+
+Symbol position (€1 vs 1€)
+
+Separators (1,234.56 vs 1.234,56)
+
+Decimal places (auto or manual override)
+
+Preview panel showing formatted examples
+
+Export/import in JSON/CSV (for migration)
+Outline the component hierarchy, state management needs, and required localization libraries (react-intl/i18next) without implementation."*
+
+Key Requirements to Highlight
+Region-Currency Matrix
+
+Handle cases where regions use foreign currencies (e.g., USD in Panama)
+
+Live Preview
+
+Instant formatting examples when editing rules
+
+Conflict Resolution
+
+Detect when new regions overlap existing rules
+
+Versioning
+
+Track historical format changes for reporting
+
+Sample System Output
+plaintext
+1. Data Structure:
+   - Region: "FR" (France)
+   - Currency: "EUR"
+   - Format: 
+     {
+       symbol: "€",
+       symbol_position: "after",
+       decimal_separator: ",",
+       thousand_separator: " ",
+       decimal_places: 2
+     }
+
+2. Admin Workflow:
+   - Select region → View current format → Edit → Preview → Save  
+   - Bulk apply to similar regions (e.g., all EU countries)  
+
+3. Frontend Libraries:
+   - react-intl for formatting  
+   - d3-geo for region mapping  
+   - yup for validation  
+   
+   
+   1. Multi-Admin Approval Workflow (Backend)
+*"Design a Spring Boot approval system for currency format changes with:
+
+Role-based permissions (ADMIN > EDITOR > VIEWER)
+
+Pending changes workflow:
+
+Editors propose changes → Senior admins approve/reject
+
+Email/Slack notifications for pending requests
+
+72-hour auto-approval if no response
+
+Versioned audit trail storing:
+
+Proposed changes (diff)
+
+Approver/rejector metadata
+
+Rollback capability
+
+Conflict detection for concurrent edits
+Describe the state machine, API endpoints, and notification system without code."*
+
+Key Requirements:
+
+/admin/currency-format/pending (GET/PUT)
+
+Change expiration timers
+
+Diff visualization for reviewers
+
+2. Mobile-First Admin UI (Frontend)
+*"Plan a React admin interface optimized for mobile with:
+
+Priority+ pattern for small screens:
+
+Primary actions (approve/reject) always visible
+
+Secondary details (change history) collapsible
+
+Touch-friendly components:
+
+Swipeable change lists
+
+Large tap targets for separators/symbol position toggles
+
+Offline-first editing:
+
+Draft saving in IndexedDB
+
+Conflict resolution on reconnect
+
+Responsive preview panel:
+
+Stacked layout on mobile
+
+Side-by-side on desktop
+Outline the breakpoint strategy, gesture handling, and sync logic without implementation."*
+
+Key Components:
+
+PendingChangesCarousel (swipeable cards)
+
+FormatTouchEditor (large interactive separators)
+
+NetworkStatusBar (offline warnings)
+
+3. Approval Flow Visualization
+plaintext
+Proposal Lifecycle:
+1. EDITOR submits change → Status: PENDING
+2. Triggers:
+   - ADMIN notification
+   - DB version snapshot
+3. ADMIN actions:
+   - Approve → Status: ACTIVE (new default)
+   - Reject → Status: REJECTED (with reason)
+   - No response → Auto-approve after 72h
+4. Emergency rollback:
+   - Revert to any previous version
+4. Mobile UI Priorities
+plaintext
+Breakpoint Strategy:
+- <640px: Vertical stack, hidden sidebars
+- 640-1024px: Tabbed interface
+- >1024px: Full desktop layout
+
+Touch Optimizations:
+- 48x48px minimum tap targets
+- Pinch-zoom for format previews
+- Haptic feedback on actions
+5. Security Considerations
+*"Add to both prompts:
+
+Approval chains require 2+ admins for production changes
+
+Biometric auth for mobile admin actions
+
+Read-only mode during high-risk periods (Black Friday)
+
+Audit trail includes device/IP metadata"*
