@@ -220,7 +220,7 @@ export function SentimentDashboard({ className }: SentimentDashboardProps) {
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{new Date(review.timestamp).toLocaleTimeString()}</span>
-                        {review.keywords.length > 0 && (
+                        {review.keywords && review.keywords.length > 0 && (
                           <>
                             <span>•</span>
                             <span>Keywords: {review.keywords.slice(0, 3).join(', ')}</span>

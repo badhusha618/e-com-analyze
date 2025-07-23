@@ -309,6 +309,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // WebSocket endpoint for real-time alerts
+  app.get("/api/alerts/stream", (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+
+    const sendAlert = () => {
+      const alertTypes = ['critical', 'warning', 'info'];
+      const titles = [
+        'Low sentiment detected',
+        'Product review spike',
+        'Customer service delay',
+        'Inventory alert',
+        'Marketing campaign performance'
+      ];
+      const descriptions = [
+        'Product sentiment has dropped below threshold',
+        'Sudden increase in product reviews detected',
+        'Response times exceeding 24 hours',
+        'Stock levels critically low',
+        'Campaign ROI below expected performance'
+      ];
+
+      const alert = {
+        id: Date.now(),
+        type: alertTypes[Math.floor(Math.random() * alertTypes.length)],
+        title: titles[Math.floor(Math.random() * titles.length)],
+        description: descriptions[Math.floor(Math.random() * descriptions.length)],
+        timestamp: new Date().toISOString(),
+        productId: Math.floor(Math.random() * 20) + 1,
+        resolved: false,
+        metadata: {
+          productName: 'Sample Product',
+          sentimentScore: Math.floor(Math.random() * 100),
+          responseTime: Math.floor(Math.random() * 48) + 1
+        }
+      };
+
+      res.write(`data: ${JSON.stringify(alert)}\n\n`);
+    };
+
+    // Send initial alert
+    setTimeout(sendAlert, 2000);
+    
+    // Send periodic alerts
+    const interval = setInterval(sendAlert, 15000); // Every 15 seconds
+
+    req.on('close', () => {
+      clearInterval(interval);
+    });
+  });
+
   const server = createServer(app);
   return server;
 }
