@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface SentimentData {
   score: number;
@@ -41,10 +41,21 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
   });
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [eventSource, setEventSource] = useState<EventSource | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Calculate metrics from data
   const calculateMetrics = useCallback((data: SentimentData[]) => {
-    if (data.length === 0) return;
+    if (data.length === 0) {
+      setMetrics({
+        averageScore: 0,
+        totalReviews: 0,
+        positiveCount: 0,
+        negativeCount: 0,
+        neutralCount: 0,
+        trend: 'stable'
+      });
+      return;
+    }
 
     const totalReviews = data.length;
     const averageScore = data.reduce((sum, item) => sum + item.score, 0) / totalReviews;
@@ -74,12 +85,14 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
     });
   }, []);
 
+  // Connect to SSE stream
   const connect = useCallback(() => {
-    if (eventSource) {
-      eventSource.close();
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
     }
 
     const newEventSource = new EventSource('/api/sentiment/updates');
+    eventSourceRef.current = newEventSource;
     
     newEventSource.onopen = () => {
       setIsConnected(true);
@@ -89,11 +102,7 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
     newEventSource.onmessage = (event) => {
       try {
         const newSentimentData: SentimentData = JSON.parse(event.data);
-        setSentimentData(prev => {
-          const updated = [...prev, newSentimentData].slice(-100); // Keep last 100 reviews
-          calculateMetrics(updated);
-          return updated;
-        });
+        setSentimentData(prev => [...prev, newSentimentData].slice(-100)); // Keep last 100 reviews
       } catch (err) {
         console.error('Error parsing sentiment data:', err);
         setError('Failed to parse sentiment data');
@@ -104,19 +113,35 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
       setIsConnected(false);
       setError('Connection to sentiment stream lost');
     };
+  }, []);
 
-    setEventSource(newEventSource);
-  }, [eventSource, calculateMetrics]);
-
+  // Disconnect from SSE stream
   const disconnect = useCallback(() => {
-    if (eventSource) {
-      eventSource.close();
-      setEventSource(null);
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
       setIsConnected(false);
     }
-  }, [eventSource]);
+  }, []);
 
-  // Auto-connect on mount
+  // Load initial data on mount
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        const response = await fetch('/api/reviews/sentiment');
+        if (response.ok) {
+          const data = await response.json();
+          setSentimentData(data);
+        }
+      } catch (err) {
+        console.error('Failed to load initial sentiment data:', err);
+      }
+    };
+
+    loadInitialData();
+  }, []);
+
+  // Auto-connect on mount if enabled
   useEffect(() => {
     if (autoConnect) {
       connect();
@@ -127,23 +152,10 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
     };
   }, [autoConnect, connect, disconnect]);
 
-  // Fallback: Load initial data from API if SSE is not available
+  // Recalculate metrics whenever data changes
   useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        const response = await fetch('/api/reviews/sentiment');
-        if (response.ok) {
-          const data = await response.json();
-          setSentimentData(data);
-          calculateMetrics(data);
-        }
-      } catch (err) {
-        console.error('Failed to load initial sentiment data:', err);
-      }
-    };
-
-    loadInitialData();
-  }, [calculateMetrics]);
+    calculateMetrics(sentimentData);
+  }, [sentimentData, calculateMetrics]);
 
   return {
     sentimentData,

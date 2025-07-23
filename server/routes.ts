@@ -243,6 +243,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Product sentiment analysis endpoints
+  app.get("/api/products/:id/sentiment-trend", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { timeframe = '30d' } = req.query;
+      
+      // Generate mock sentiment trend data
+      const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+      const trendData = Array.from({ length: days }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (days - i));
+        
+        return {
+          date: date.toISOString(),
+          score: Math.max(20, Math.min(95, 70 + Math.sin(i * 0.1) * 15 + (Math.random() - 0.5) * 10)),
+          reviewCount: Math.floor(Math.random() * 10) + 1
+        };
+      });
+      
+      res.json(trendData);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sentiment trend" });
+    }
+  });
+
+  app.get("/api/products/:id/complaints", async (req, res) => {
+    try {
+      const complaints = [
+        { keyword: "slow delivery", frequency: 23, impact: "high" },
+        { keyword: "packaging", frequency: 18, impact: "medium" },
+        { keyword: "customer service", frequency: 15, impact: "high" },
+        { keyword: "quality", frequency: 12, impact: "medium" },
+        { keyword: "price", frequency: 8, impact: "low" }
+      ];
+      
+      res.json(complaints);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch complaints" });
+    }
+  });
+
+  app.get("/api/products/:id/response-metrics", async (req, res) => {
+    try {
+      const metrics = {
+        avgResponseTime: Math.floor(Math.random() * 48) + 2, // 2-50 hours
+        responseRate: Math.floor(Math.random() * 30) + 70, // 70-100%
+        escalationRate: Math.floor(Math.random() * 25) + 5 // 5-30%
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch response metrics" });
+    }
+  });
+
+  // Alert management endpoints
+  app.patch("/api/alerts/:id/resolve", async (req, res) => {
+    try {
+      const { id } = req.params;
+      // In a real app, update the database
+      res.json({ success: true, message: "Alert resolved" });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to resolve alert" });
+    }
+  });
+
   const server = createServer(app);
   return server;
 }
