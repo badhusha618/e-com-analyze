@@ -91,28 +91,33 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
       eventSourceRef.current.close();
     }
 
-    const newEventSource = new EventSource('/api/sentiment/updates');
-    eventSourceRef.current = newEventSource;
+    try {
+      const newEventSource = new EventSource('/api/reviews/sentiment');
+      eventSourceRef.current = newEventSource;
     
-    newEventSource.onopen = () => {
-      setIsConnected(true);
-      setError(null);
-    };
+      newEventSource.onopen = () => {
+        setIsConnected(true);
+        setError(null);
+      };
 
-    newEventSource.onmessage = (event) => {
-      try {
-        const newSentimentData: SentimentData = JSON.parse(event.data);
-        setSentimentData(prev => [...prev, newSentimentData].slice(-100)); // Keep last 100 reviews
-      } catch (err) {
-        console.error('Error parsing sentiment data:', err);
-        setError('Failed to parse sentiment data');
-      }
-    };
+      newEventSource.onmessage = (event) => {
+        try {
+          const newSentimentData: SentimentData = JSON.parse(event.data);
+          setSentimentData(prev => [...prev, newSentimentData].slice(-100)); // Keep last 100 reviews
+        } catch (err) {
+          console.error('Error parsing sentiment data:', err);
+          setError('Failed to parse sentiment data');
+        }
+      };
 
-    newEventSource.onerror = () => {
-      setIsConnected(false);
-      setError('Connection to sentiment stream lost');
-    };
+      newEventSource.onerror = () => {
+        setIsConnected(false);
+        setError('Connection to sentiment stream lost');
+      };
+    } catch (error) {
+      console.error('Failed to create SSE connection:', error);
+      setError('Failed to connect to sentiment stream');
+    }
   }, []);
 
   // Disconnect from SSE stream
@@ -135,10 +140,14 @@ export function useSentiment(autoConnect: boolean = true): UseSentimentReturn {
         }
       } catch (err) {
         console.error('Failed to load initial sentiment data:', err);
+        setError('Failed to load initial sentiment data');
       }
     };
 
-    loadInitialData();
+    loadInitialData().catch(error => {
+      console.error('Error in loadInitialData:', error);
+      setError('Failed to initialize sentiment data');
+    });
   }, []);
 
   // Auto-connect on mount if enabled

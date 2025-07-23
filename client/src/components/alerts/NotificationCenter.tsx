@@ -43,57 +43,81 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     }
   }, []);
 
-  // WebSocket connection for real-time alerts
+  // Server-Sent Events connection for real-time alerts
   useEffect(() => {
-    const connectWebSocket = () => {
-      const ws = new WebSocket(`ws://${window.location.host}/api/alerts/stream`);
-      
-      ws.onopen = () => {
-        setIsConnected(true);
-        console.log('Connected to alert stream');
-      };
+    let eventSource: EventSource | null = null;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
-      ws.onmessage = (event) => {
-        try {
-          const newAlert: Alert = JSON.parse(event.data);
-          
-          // Add to alerts list
-          setAlerts(prev => [newAlert, ...prev].slice(0, 100)); // Keep last 100 alerts
-          setUnreadCount(prev => prev + 1);
-          
-          // Show toast notification
-          toast({
-            title: newAlert.title,
-            description: newAlert.description,
-            variant: newAlert.type === 'critical' ? 'destructive' : 'default',
-          });
-          
-          // Show browser notification
-          if (Notification.permission === 'granted') {
-            new Notification(newAlert.title, {
-              body: newAlert.description,
-              icon: '/favicon.ico',
-              badge: '/favicon.ico',
+    const connectSSE = () => {
+      try {
+        eventSource = new EventSource('/api/alerts/stream');
+        
+        eventSource.onopen = () => {
+          setIsConnected(true);
+          console.log('Connected to alert stream');
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const newAlert: Alert = JSON.parse(event.data);
+            
+            // Add to alerts list
+            setAlerts(prev => [newAlert, ...prev].slice(0, 100)); // Keep last 100 alerts
+            setUnreadCount(prev => prev + 1);
+            
+            // Show toast notification
+            toast({
+              title: newAlert.title,
+              description: newAlert.description,
+              variant: newAlert.type === 'critical' ? 'destructive' : 'default',
             });
+            
+            // Show browser notification
+            if (Notification.permission === 'granted') {
+              new Notification(newAlert.title, {
+                body: newAlert.description,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+              });
+            }
+          } catch (error) {
+            console.error('Error parsing alert:', error);
           }
-        } catch (error) {
-          console.error('Error parsing alert:', error);
-        }
-      };
+        };
 
-      ws.onclose = () => {
+        eventSource.onerror = (error) => {
+          console.error('SSE error:', error);
+          setIsConnected(false);
+          
+          if (eventSource) {
+            eventSource.close();
+          }
+          
+          // Reconnect after 5 seconds
+          reconnectTimeout = setTimeout(connectSSE, 5000);
+        };
+
+      } catch (error) {
+        console.error('Failed to create SSE connection:', error);
         setIsConnected(false);
-        console.log('Disconnected from alert stream');
-        // Reconnect after 3 seconds
-        setTimeout(connectWebSocket, 3000);
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+        
+        // Retry connection after 5 seconds
+        reconnectTimeout = setTimeout(connectSSE, 5000);
+      }
     };
 
-    connectWebSocket();
+    connectSSE();
+
+    // Cleanup function
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      setIsConnected(false);
+    };
   }, [toast]);
 
   // Load initial alerts
@@ -111,7 +135,9 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       }
     };
 
-    loadAlerts();
+    loadAlerts().catch(error => {
+      console.error('Error in loadAlerts:', error);
+    });
   }, []);
 
   const markAsResolved = useCallback(async (alertId: number) => {
