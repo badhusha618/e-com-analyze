@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import AppLayout from "@/components/layout/AppLayout";
 import {
   Table,
   TableBody,
@@ -152,36 +153,23 @@ export default function CustomersPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-gray-200 dark:bg-gray-700 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-red-600 dark:text-red-400">Failed to load customer data</p>
-          </CardContent>
-        </Card>
-      </div>
+      <AppLayout title="Customers">
+        <div className="p-6">
+          <Card>
+            <CardContent className="p-6">
+              <p className="text-red-600 dark:text-red-400">Failed to load customer data</p>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <AppLayout title="Customers" loading={isLoading}>
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Customers</h1>
@@ -338,6 +326,7 @@ export default function CustomersPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AppLayout>
   );
 }

@@ -4,8 +4,7 @@ import type { AppDispatch, RootState } from '@/store';
 import { fetchDashboardMetrics, fetchSalesData } from '@/store/slices/dashboardSlice';
 import { fetchTopProducts } from '@/store/slices/productsSlice';
 import { fetchAlerts } from '@/store/slices/alertsSlice';
-import Sidebar from '@/components/layout/Sidebar';
-import TopBar from '@/components/layout/TopBar';
+import AppLayout from '@/components/layout/AppLayout';
 import MetricsGrid from '@/components/dashboard/MetricsGrid';
 import SalesChart from '@/components/dashboard/SalesChart';
 import TopProducts from '@/components/dashboard/TopProducts';
@@ -29,36 +28,13 @@ export default function Dashboard() {
     dispatch(fetchAlerts());
   }, [dispatch]);
 
-  const unreadAlertsCount = alerts.filter(alert => !alert.isRead).length;
-
   if (dashboardLoading || !metrics) {
-    return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <TopBar unreadAlerts={unreadAlertsCount} />
-          <main className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full" />
-              ))}
-            </div>
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-              <Skeleton className="xl:col-span-2 h-96 w-full" />
-              <Skeleton className="h-96 w-full" />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+    return <AppLayout title="Dashboard" loading={true} />;
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar unreadAlerts={unreadAlertsCount} />
-        <main className="flex-1 overflow-y-auto p-6">
+    <AppLayout title="Dashboard">
+      <div className="p-6">
           <AlertsBar alerts={alerts} />
           
           <MetricsGrid metrics={metrics} />
@@ -70,12 +46,11 @@ export default function Dashboard() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <CustomerSentiment />
-            <MarketingPerformance campaigns={metrics.campaigns || []} />
+            <MarketingPerformance campaigns={metrics?.campaigns || []} />
           </div>
           
           <ProductPerformanceTable products={products.slice(0, 10)} />
-        </main>
-      </div>
-    </div>
+        </div>
+    </AppLayout>
   );
 }
