@@ -14,6 +14,7 @@ import AlertsPage from "@/pages/AlertsPage";
 import SentimentPage from "@/pages/SentimentPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
+import UserManagementPage from "@/pages/UserManagementPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
@@ -93,6 +94,14 @@ function Router() {
         <ProtectedRoute>
           <AppLayout title="Sentiment Analysis">
             <SentimentPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/admin/users">
+        <ProtectedRoute>
+          <AppLayout title="User Management">
+            <UserManagementPage />
           </AppLayout>
         </ProtectedRoute>
       </Route>

@@ -1,16 +1,16 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import authRoutes from "./authRoutes";
+import { authRouter } from "./authRoutes";
+import { userManagementRouter } from "./userManagement";
 import { authenticateToken, type AuthRequest } from "./auth";
-import { userRoutes } from "./userRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
-  app.use("/api/auth", authRoutes);
+  app.use("/api/auth", authRouter);
   
-  // User management routes
-  app.use("/api/user", userRoutes);
+  // User management routes (protected)
+  app.use("/api/admin", authenticateToken, userManagementRouter);
 
   // Dashboard metrics (temporarily unprotected for development)
   app.get("/api/dashboard/metrics", async (req, res) => {

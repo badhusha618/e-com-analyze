@@ -1,655 +1,388 @@
-import { eq, and, or, desc, sql } from "drizzle-orm";
-import { db } from "./db";
+import { Router, type Response } from 'express';
 import { 
-  users, 
-  roles, 
-  userRoles, 
-  userAuditLog, 
-  jitProvisioningRules,
-  pendingUserApprovals,
-  userChangeRequests,
-  userSessions,
-  anomalyDetectionModels,
+  requirePermission,
+  hasPermission,
+  type AuthRequest
+} from './auth';
+import { storage } from './storage';
+import { 
+  createUserSchema,
+  updateUserRolesSchema,
   PERMISSIONS,
-  type User,
-  type Role,
-  type UserRole,
-  type CreateUser,
-  type NewUserRole,
-  type NewUserAuditLog,
-  type NewJitProvisioningRule,
-  type NewPendingUserApproval,
-  type NewUserChangeRequest,
-  type Permission
-} from "../shared/schema";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-const RATE_LIMIT_ATTEMPTS = 5;
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+  type CreateUser
+} from '@shared/schema';
+import { hashPassword, validatePassword } from './auth';
+import { nanoid } from 'nanoid';
 
-// User management service
-export class UserManagementService {
-  
-  // Create user with role-based access control
-  async createUser(adminUser: User, userData: CreateUser, requestedRoles: number[] = []): Promise<User> {
-    await this.requirePermission(adminUser, PERMISSIONS.USER_CREATE);
+const userManagementRouter = Router();
+
+// GET /admin/users - List all users (requires USER_READ permission)
+userManagementRouter.get('/users', requirePermission(PERMISSIONS.USER_READ), async (req: AuthRequest, res: Response) => {
+  try {
+    const users = await storage.getAllUsers();
     
-    // Hash password
-    const hashedPassword = await bcrypt.hash(userData.password, 12);
-    
-    // Check if user already exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(or(eq(users.email, userData.email), eq(users.username, userData.username)))
-      .limit(1);
-      
-    if (existingUser.length > 0) {
-      throw new Error("User with this email or username already exists");
-    }
-    
-    // Create user
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        ...userData,
-        password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .returning();
-      
-    // Assign roles if provided and user has permission
-    if (requestedRoles.length > 0) {
-      await this.assignUserRoles(adminUser, newUser.id, requestedRoles, "Initial role assignment");
-    }
-    
-    // Log audit trail
-    await this.logUserAction(adminUser.id, {
-      action: "CREATE_USER",
-      entityType: "USER", 
-      entityId: newUser.id,
-      afterValues: { userId: newUser.id, email: newUser.email },
-      changeSummary: `Created user ${newUser.email}`,
-    });
-    
-    return newUser;
-  }
-  
-  // Update user roles with approval workflow
-  async updateUserRoles(
-    adminUser: User, 
-    targetUserId: number, 
-    roleIds: number[], 
-    justification: string,
-    emergencyRequest: boolean = false
-  ): Promise<NewUserChangeRequest | void> {
-    const hasDirectAccess = await this.hasPermission(adminUser, PERMISSIONS.USER_ROLES_UPDATE);
-    const isSuperAdmin = await this.hasRole(adminUser, "SUPER_ADMIN");
-    
-    // Super admins can make direct changes
-    if (isSuperAdmin && (emergencyRequest || hasDirectAccess)) {
-      return await this.executeRoleUpdate(adminUser, targetUserId, roleIds, justification);
-    }
-    
-    // Others must submit change request
-    const [changeRequest] = await db
-      .insert(userChangeRequests)
-      .values({
-        requesterId: adminUser.id,
-        targetUserId,
-        changeType: "UPDATE_ROLES",
-        proposedChanges: { roleIds } as any,
-        justification,
-        emergencyRequest,
-        expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours
-      })
-      .returning();
-      
-    // Calculate anomaly score
-    const riskScore = await this.calculateAnomalyScore(adminUser, "UPDATE_ROLES", { targetUserId, roleIds });
-    
-    // Auto-flag high-risk changes
-    if (riskScore > 0.7) {
-      await this.flagAnomalousActivity(changeRequest.id, riskScore);
-    }
-    
-    return changeRequest;
-  }
-  
-  // Execute role update (direct or approved)
-  private async executeRoleUpdate(
-    adminUser: User, 
-    targetUserId: number, 
-    roleIds: number[], 
-    justification: string
-  ): Promise<void> {
-    // Get current roles
-    const currentRoles = await db
-      .select()
-      .from(userRoles)
-      .where(and(eq(userRoles.userId, targetUserId), eq(userRoles.isActive, true)));
-      
-    // Deactivate existing roles
-    await db
-      .update(userRoles)
-      .set({ isActive: false })
-      .where(eq(userRoles.userId, targetUserId));
-      
-    // Assign new roles
-    if (roleIds.length > 0) {
-      await db.insert(userRoles).values(
-        roleIds.map(roleId => ({
-          userId: targetUserId,
-          roleId,
-          assignedBy: adminUser.id,
-          assignedAt: new Date(),
-        }))
-      );
-    }
-    
-    // Log audit trail
-    await this.logUserAction(adminUser.id, {
-      action: "UPDATE_ROLES",
-      entityType: "USER",
-      entityId: targetUserId,
-      beforeValues: { roleIds: currentRoles.map(r => r.roleId) },
-      afterValues: { roleIds },
-      changeSummary: `Updated roles for user ${targetUserId}: ${justification}`,
-    });
-  }
-  
-  // Approve/reject change requests
-  async processChangeRequest(
-    adminUser: User, 
-    requestId: number, 
-    action: "approve" | "reject", 
-    reason?: string
-  ): Promise<void> {
-    await this.requirePermission(adminUser, PERMISSIONS.ADMIN_EMERGENCY_ACCESS);
-    
-    const [request] = await db
-      .select()
-      .from(userChangeRequests)
-      .where(eq(userChangeRequests.id, requestId))
-      .limit(1);
-      
-    if (!request || request.status !== "PENDING") {
-      throw new Error("Change request not found or not pending");
-    }
-    
-    if (action === "approve") {
-      await this.executeRoleUpdate(
-        adminUser,
-        request.targetUserId!,
-        (request.proposedChanges as any).roleIds,
-        request.justification || "Approved change request"
-      );
-      
-      await db
-        .update(userChangeRequests)
-        .set({
-          status: "APPROVED",
-          approverId: adminUser.id,
-          approvedAt: new Date(),
-          approvalReason: reason,
-        })
-        .where(eq(userChangeRequests.id, requestId));
-    } else {
-      await db
-        .update(userChangeRequests)
-        .set({
-          status: "REJECTED",
-          approverId: adminUser.id,
-          approvedAt: new Date(),
-          rejectionReason: reason,
-        })
-        .where(eq(userChangeRequests.id, requestId));
-    }
-  }
-  
-  // Delete user (SUPER_ADMIN only)
-  async deleteUser(adminUser: User, targetUserId: number): Promise<void> {
-    await this.requireRole(adminUser, "SUPER_ADMIN");
-    
-    // Prevent self-deletion
-    if (adminUser.id === targetUserId) {
-      throw new Error("Cannot delete your own account");
-    }
-    
-    // Check if target is SUPER_ADMIN (require 2+ admins)
-    const targetUserRoles = await this.getUserRoles(targetUserId);
-    const isSuperAdmin = targetUserRoles.some(role => role.name === "SUPER_ADMIN");
-    
-    if (isSuperAdmin) {
-      const superAdminCount = await this.countUsersWithRole("SUPER_ADMIN");
-      if (superAdminCount <= 2) {
-        throw new Error("Cannot delete SUPER_ADMIN when less than 2 remain");
-      }
-    }
-    
-    // Soft delete user
-    await db
-      .update(users)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(users.id, targetUserId));
-      
-    // Deactivate all roles
-    await db
-      .update(userRoles)
-      .set({ isActive: false })
-      .where(eq(userRoles.userId, targetUserId));
-      
-    // Log audit trail
-    await this.logUserAction(adminUser.id, {
-      action: "DELETE_USER",
-      entityType: "USER",
-      entityId: targetUserId,
-      changeSummary: `Deleted user ${targetUserId}`,
-    });
-  }
-  
-  // JIT Provisioning for OAuth/external users
-  async provisionJitUser(claims: any, providerName: string): Promise<User | NewPendingUserApproval> {
-    const email = claims.email;
-    const domain = email.split('@')[1];
-    
-    // Check for existing JIT rule
-    const [rule] = await db
-      .select()
-      .from(jitProvisioningRules)
-      .where(
-        and(
-          eq(jitProvisioningRules.providerName, providerName),
-          or(
-            eq(jitProvisioningRules.emailDomain, domain),
-            eq(jitProvisioningRules.emailDomain, "*") // Wildcard rule
-          ),
-          eq(jitProvisioningRules.isActive, true)
-        )
-      )
-      .limit(1);
-      
-    if (!rule) {
-      throw new Error("JIT provisioning not configured for this provider/domain");
-    }
-    
-    // Check if user already exists
-    const [existingUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-      
-    if (existingUser) {
-      return existingUser;
-    }
-    
-    // Map claims to roles
-    const mappedRoles = this.mapClaimsToRoles(claims, rule.claimMapping);
-    
-    // Create user
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        username: claims.preferred_username || email,
-        email,
-        firstName: claims.given_name,
-        lastName: claims.family_name,
-        password: await bcrypt.hash(Math.random().toString(36), 12), // Random password for external users
-        isExternal: true,
-        isActive: !rule.requiresApproval,
-      })
-      .returning();
-      
-    if (rule.requiresApproval) {
-      // Create pending approval
-      const [pendingApproval] = await db
-        .insert(pendingUserApprovals)
-        .values({
-          userId: newUser.id,
-          providerClaims: claims,
-          requestedRoles: mappedRoles,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        })
-        .returning();
-        
-      return pendingApproval;
-    } else {
-      // Auto-assign roles
-      if (mappedRoles.length > 0) {
-        await db.insert(userRoles).values(
-          mappedRoles.map(roleId => ({
-            userId: newUser.id,
-            roleId,
-            assignedAt: new Date(),
-          }))
+    const usersWithRoles = await Promise.all(
+      users.map(async (user) => {
+        const userRoles = await storage.getUserRoles(user.id);
+        const roles = await Promise.all(
+          userRoles.map(async (ur) => {
+            const role = await storage.getRole(ur.roleId);
+            return role ? {
+              ...role,
+              assignedAt: ur.assignedAt,
+              expiresAt: ur.expiresAt
+            } : null;
+          })
         );
-      }
-      
-      return newUser;
-    }
-  }
-  
-  // AI Anomaly Detection
-  async calculateAnomalyScore(user: User, action: string, context: any): Promise<number> {
-    const features = await this.extractFeatures(user, action, context);
-    
-    // Simple isolation forest-like scoring
-    // In production, this would use a trained ML model
-    let score = 0.0;
-    
-    // Time-based anomalies
-    const hour = new Date().getHours();
-    if (hour < 6 || hour > 22) score += 0.3; // After hours
-    
-    // Location-based anomalies (simplified)
-    const recentLogins = await this.getRecentUserActivity(user.id, 24);
-    if (recentLogins.length > 0) {
-      // Check for geographic velocity (simplified)
-      score += 0.2;
-    }
-    
-    // Role escalation patterns
-    if (action === "UPDATE_ROLES" && context.roleIds) {
-      const currentRoles = await this.getUserRoles(user.id);
-      const isEscalation = context.roleIds.some((roleId: number) => 
-        !currentRoles.some(r => r.id === roleId)
-      );
-      if (isEscalation) score += 0.4;
-    }
-    
-    // Bulk operations
-    if (context.bulk || (context.roleIds && context.roleIds.length > 3)) {
-      score += 0.3;
-    }
-    
-    return Math.min(score, 1.0);
-  }
-  
-  // Helper methods
-  private async requirePermission(user: User, permission: Permission): Promise<void> {
-    const hasPermission = await this.hasPermission(user, permission);
-    if (!hasPermission) {
-      throw new Error(`Insufficient permissions: ${permission}`);
-    }
-  }
-  
-  private async requireRole(user: User, roleName: string): Promise<void> {
-    const hasRole = await this.hasRole(user, roleName);
-    if (!hasRole) {
-      throw new Error(`Requires role: ${roleName}`);
-    }
-  }
-  
-  async hasPermission(user: User, permission: Permission): Promise<boolean> {
-    const userRolesData = await db
-      .select({ permissions: roles.permissions })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(
-        and(
-          eq(userRoles.userId, user.id),
-          eq(userRoles.isActive, true),
-          eq(roles.isActive, true)
-        )
-      );
-      
-    return userRolesData.some(role => 
-      (role.permissions as string[]).includes(permission)
-    );
-  }
-  
-  async hasRole(user: User, roleName: string): Promise<boolean> {
-    const userRole = await db
-      .select()
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(
-        and(
-          eq(userRoles.userId, user.id),
-          eq(roles.name, roleName),
-          eq(userRoles.isActive, true),
-          eq(roles.isActive, true)
-        )
-      )
-      .limit(1);
-      
-    return userRole.length > 0;
-  }
-  
-  async getUserRoles(userId: number): Promise<Role[]> {
-    return await db
-      .select({
-        id: roles.id,
-        name: roles.name,
-        description: roles.description,
-        permissions: roles.permissions,
-        isActive: roles.isActive,
-        createdAt: roles.createdAt,
+        
+        return {
+          ...user,
+          password: undefined, // Don't send password
+          roles: roles.filter(Boolean)
+        };
       })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(
-        and(
-          eq(userRoles.userId, userId),
-          eq(userRoles.isActive, true),
-          eq(roles.isActive, true)
-        )
-      );
+    );
+
+    res.json({ users: usersWithRoles });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  
-  private async countUsersWithRole(roleName: string): Promise<number> {
-    const [result] = await db
-      .select({ count: sql`count(*)` })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(
-        and(
-          eq(roles.name, roleName),
-          eq(userRoles.isActive, true),
-          eq(roles.isActive, true)
-        )
-      );
-      
-    return Number(result.count);
-  }
-  
-  private async logUserAction(adminId: number, auditData: Partial<NewUserAuditLog>): Promise<void> {
-    await db.insert(userAuditLog).values({
-      adminId,
-      ...auditData,
+});
+
+// GET /admin/users/:id - Get specific user (requires USER_READ permission)
+userManagementRouter.get('/users/:id', requirePermission(PERMISSIONS.USER_READ), async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userRoles = await storage.getUserRoles(userId);
+    const roles = await Promise.all(
+      userRoles.map(async (ur) => {
+        const role = await storage.getRole(ur.roleId);
+        return role ? {
+          ...role,
+          assignedAt: ur.assignedAt,
+          expiresAt: ur.expiresAt
+        } : null;
+      })
+    );
+
+    const auditLogs = await storage.getAuditLogs(userId, 10);
+    const sessions = await storage.getUserSessions(userId);
+
+    res.json({
+      user: {
+        ...user,
+        password: undefined, // Don't send password
+        roles: roles.filter(Boolean)
+      },
+      recentActivity: auditLogs,
+      activeSessions: sessions.filter(s => s.isActive)
     });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
-  
-  private mapClaimsToRoles(claims: any, mapping: any): number[] {
-    // Simplified claim mapping - in production this would be more sophisticated
-    const roleIds: number[] = [];
+});
+
+// POST /admin/users - Create new user (requires USER_CREATE permission)
+userManagementRouter.post('/users', requirePermission(PERMISSIONS.USER_CREATE), async (req: AuthRequest, res: Response) => {
+  try {
+    // Validate request body
+    const validationResult = createUserSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationResult.error.issues 
+      });
+    }
+
+    const userData: CreateUser = validationResult.data;
+
+    // Check if user already exists
+    const existingUserByEmail = await storage.getUserByEmail(userData.email);
+    if (existingUserByEmail) {
+      return res.status(409).json({ message: 'Email already registered' });
+    }
+
+    const existingUserByUsername = await storage.getUserByUsername(userData.username);
+    if (existingUserByUsername) {
+      return res.status(409).json({ message: 'Username already taken' });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePassword(userData.password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        message: 'Password does not meet requirements',
+        errors: passwordValidation.errors
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(userData.password);
+
+    // Create user
+    const newUser = await storage.createUser({
+      username: userData.username,
+      email: userData.email,
+      password: hashedPassword,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      role: userData.role || 'READER',
+      isActive: userData.isActive ?? true,
+      isSuspended: userData.isSuspended ?? false,
+      isExternal: userData.isExternal ?? false,
+      twoFactorEnabled: userData.twoFactorEnabled ?? false,
+      loginAttempts: 0,
+      sessionTimeout: userData.sessionTimeout || 8
+    });
+
+    // Assign default role if not specified
+    const defaultRole = await storage.getRoleByName(userData.role || 'READER');
+    if (defaultRole) {
+      await storage.assignUserRole({
+        userId: newUser.id,
+        roleId: defaultRole.id,
+        assignedBy: req.user!.id,
+        isActive: true
+      });
+    }
+
+    // Create audit log entry
+    await storage.createAuditLog({
+      adminId: req.user!.id,
+      targetUserId: newUser.id,
+      action: 'USER_CREATED',
+      entityType: 'USER',
+      entityId: newUser.id,
+      afterValues: { 
+        username: newUser.username, 
+        email: newUser.email,
+        role: newUser.role,
+        isActive: newUser.isActive
+      },
+      changeSummary: `User created by admin ${req.user!.username}`,
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('User-Agent') || 'unknown',
+      sessionId: req.get('X-Session-Id') || nanoid(),
+      riskScore: '0.3',
+      isAnomalous: false
+    });
+
+    res.status(201).json({
+      message: 'User created successfully',
+      user: {
+        ...newUser,
+        password: undefined // Don't send password
+      }
+    });
+
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ message: 'Internal server error during user creation' });
+  }
+});
+
+// PUT /admin/users/:id/roles - Update user roles (requires USER_ROLES_UPDATE permission)
+userManagementRouter.put('/users/:id/roles', requirePermission(PERMISSIONS.USER_ROLES_UPDATE), async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Validate request body
+    const validationResult = updateUserRolesSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: 'Validation failed', 
+        errors: validationResult.error.issues 
+      });
+    }
+
+    const { roleIds, justification, emergencyRequest } = validationResult.data;
+
+    // Check if target user exists
+    const targetUser = await storage.getUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent self-deletion protection
+    if (userId === req.user!.id && roleIds.length === 0) {
+      return res.status(403).json({ message: 'Cannot remove all roles from your own account' });
+    }
+
+    // Check if trying to assign SUPER_ADMIN role
+    const superAdminRole = await storage.getRoleByName('SUPER_ADMIN');
+    const isSuperAdminAssignment = superAdminRole && roleIds.includes(superAdminRole.id);
     
-    if (claims.groups && Array.isArray(claims.groups)) {
-      for (const group of claims.groups) {
-        if (mapping[group]) {
-          roleIds.push(mapping[group]);
+    if (isSuperAdminAssignment && !hasPermission(req.user!.permissions, 'admin:*')) {
+      return res.status(403).json({ message: 'Only SUPER_ADMIN can assign SUPER_ADMIN role' });
+    }
+
+    // Get current roles for audit log
+    const currentRoles = await storage.getUserRoles(userId);
+    const currentRoleIds = currentRoles.map(ur => ur.roleId);
+
+    // Update user roles
+    const updatedRoles = await storage.updateUserRoles(userId, roleIds, req.user!.id);
+
+    // Create audit log entry
+    await storage.createAuditLog({
+      adminId: req.user!.id,
+      targetUserId: userId,
+      action: 'USER_ROLES_UPDATED',
+      entityType: 'USER',
+      entityId: userId,
+      beforeValues: { roleIds: currentRoleIds },
+      afterValues: { roleIds: roleIds },
+      changeSummary: `User roles updated by ${req.user!.username}. Justification: ${justification}`,
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('User-Agent') || 'unknown',
+      sessionId: req.get('X-Session-Id') || nanoid(),
+      riskScore: emergencyRequest ? '0.8' : '0.5',
+      isAnomalous: emergencyRequest
+    });
+
+    res.json({
+      message: 'User roles updated successfully',
+      roles: updatedRoles
+    });
+
+  } catch (error) {
+    console.error('Update user roles error:', error);
+    res.status(500).json({ message: 'Internal server error during role update' });
+  }
+});
+
+// DELETE /admin/users/:id - Delete user (requires USER_DELETE permission)
+userManagementRouter.delete('/users/:id', requirePermission(PERMISSIONS.USER_DELETE), async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Prevent self-deletion
+    if (userId === req.user!.id) {
+      return res.status(403).json({ message: 'Cannot delete your own account' });
+    }
+
+    // Check if user exists
+    const targetUser = await storage.getUserById(userId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if user is SUPER_ADMIN
+    const userRoles = await storage.getUserRoles(userId);
+    const superAdminRole = await storage.getRoleByName('SUPER_ADMIN');
+    const isSuperAdmin = superAdminRole && userRoles.some(ur => ur.roleId === superAdminRole.id);
+
+    if (isSuperAdmin) {
+      // Ensure there are at least 2 SUPER_ADMINs before allowing deletion
+      const allUsers = await storage.getAllUsers();
+      let superAdminCount = 0;
+      
+      for (const user of allUsers) {
+        const roles = await storage.getUserRoles(user.id);
+        if (superAdminRole && roles.some(ur => ur.roleId === superAdminRole.id)) {
+          superAdminCount++;
         }
       }
+
+      if (superAdminCount <= 1) {
+        return res.status(403).json({ 
+          message: 'Cannot delete the last SUPER_ADMIN user. At least one SUPER_ADMIN must remain.' 
+        });
+      }
     }
-    
-    return roleIds;
-  }
-  
-  private async extractFeatures(user: User, action: string, context: any): Promise<any> {
-    return {
-      userId: user.id,
-      action,
-      timestamp: new Date(),
-      hour: new Date().getHours(),
-      dayOfWeek: new Date().getDay(),
-      ...context,
+
+    // Store user data for audit log before deletion
+    const userData = {
+      username: targetUser.username,
+      email: targetUser.email,
+      role: targetUser.role
     };
-  }
-  
-  private async getRecentUserActivity(userId: number, hours: number): Promise<any[]> {
-    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    
-    return await db
-      .select()
-      .from(userAuditLog)
-      .where(
-        and(
-          eq(userAuditLog.targetUserId, userId),
-          sql`${userAuditLog.timestamp} > ${since}`
-        )
-      )
-      .orderBy(desc(userAuditLog.timestamp));
-  }
-  
-  private async flagAnomalousActivity(requestId: number, riskScore: number): Promise<void> {
-    // Update the change request with anomaly flag
-    await db
-      .update(userChangeRequests)
-      .set({
-        // Add risk score to metadata if needed
-        proposedChanges: sql`${userChangeRequests.proposedChanges} || '{"riskScore": ${riskScore}}'`,
-      })
-      .where(eq(userChangeRequests.id, requestId));
-      
-    // Send alert to security team
-    // Implementation would depend on your alerting system
-    console.log(`🚨 Anomalous activity detected: Request ${requestId}, Risk Score: ${riskScore}`);
-  }
-  
-  async assignUserRoles(adminUser: User, userId: number, roleIds: number[], justification: string): Promise<void> {
-    await this.requirePermission(adminUser, PERMISSIONS.USER_ROLES_UPDATE);
-    
-    if (roleIds.length > 0) {
-      await db.insert(userRoles).values(
-        roleIds.map(roleId => ({
-          userId,
-          roleId,
-          assignedBy: adminUser.id,
-          assignedAt: new Date(),
-        }))
-      );
+
+    // Delete user
+    const deleted = await storage.deleteUser(userId);
+    if (!deleted) {
+      return res.status(500).json({ message: 'Failed to delete user' });
     }
-    
-    await this.logUserAction(adminUser.id, {
-      action: "ASSIGN_ROLES",
-      entityType: "USER",
+
+    // Create audit log entry
+    await storage.createAuditLog({
+      adminId: req.user!.id,
+      targetUserId: userId,
+      action: 'USER_DELETED',
+      entityType: 'USER',
       entityId: userId,
-      afterValues: { roleIds },
-      changeSummary: justification,
+      beforeValues: userData,
+      changeSummary: `User ${userData.username} deleted by ${req.user!.username}`,
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('User-Agent') || 'unknown',
+      sessionId: req.get('X-Session-Id') || nanoid(),
+      riskScore: '0.9',
+      isAnomalous: true
     });
-  }
-}
 
-// Rate limiting middleware
-export const rateLimitMiddleware = (req: any, res: any, next: Function) => {
-  // Simple in-memory rate limiting - in production use Redis
-  const ip = req.ip;
-  const now = Date.now();
-  
-  // This would be stored in Redis in production
-  const attempts = (global as any).loginAttempts || {};
-  
-  if (!attempts[ip!]) {
-    attempts[ip!] = { count: 0, firstAttempt: now };
-  }
-  
-  const timeWindow = now - attempts[ip!].firstAttempt;
-  
-  if (timeWindow > RATE_LIMIT_WINDOW) {
-    // Reset window
-    attempts[ip!] = { count: 1, firstAttempt: now };
-  } else {
-    attempts[ip!].count++;
-  }
-  
-  if (attempts[ip!].count > RATE_LIMIT_ATTEMPTS) {
-    return res.status(429).json({
-      error: "Too many login attempts. Please try again later.",
-      retryAfter: Math.ceil((RATE_LIMIT_WINDOW - timeWindow) / 1000),
-    });
-  }
-  
-  (global as any).loginAttempts = attempts;
-  next();
-};
+    res.json({ message: 'User deleted successfully' });
 
-// Authentication middleware
-export const authenticateToken = async (req: any, res: any, next: Function) => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: "Access token required" });
-  }
-  
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
-    
-    // Get user with roles
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, decoded.userId))
-      .limit(1);
-      
-    if (!user || !user.isActive) {
-      return res.status(401).json({ error: "Invalid or inactive user" });
-    }
-    
-    // Get user roles
-    const userRolesData = await db
-      .select({
-        id: roles.id,
-        name: roles.name,
-        permissions: roles.permissions,
-      })
-      .from(userRoles)
-      .innerJoin(roles, eq(userRoles.roleId, roles.id))
-      .where(
-        and(
-          eq(userRoles.userId, user.id),
-          eq(userRoles.isActive, true),
-          eq(roles.isActive, true)
-        )
-      );
-    
-    req.user = {
-      ...user,
-      roles: userRolesData,
-      permissions: userRolesData.flatMap(role => role.permissions as string[]),
-    };
-    
-    next();
   } catch (error) {
-    return res.status(403).json({ error: "Invalid token" });
+    console.error('Delete user error:', error);
+    res.status(500).json({ message: 'Internal server error during user deletion' });
   }
-};
+});
 
-// Permission check middleware
-export const requirePermission = (permission: Permission) => {
-  return (req: any, res: any, next: Function) => {
-    if (!req.user || !req.user.permissions.includes(permission)) {
-      return res.status(403).json({ 
-        error: "Insufficient permissions",
-        required: permission 
-      });
-    }
-    next();
-  };
-};
+// GET /admin/roles - Get all roles (requires ROLE_READ permission)
+userManagementRouter.get('/roles', requirePermission(PERMISSIONS.ROLE_READ), async (req: AuthRequest, res: Response) => {
+  try {
+    const roles = await storage.getRoles();
+    res.json({ roles });
+  } catch (error) {
+    console.error('Get roles error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
-// Role check middleware  
-export const requireRole = (roleName: string) => {
-  return (req: any, res: any, next: Function) => {
-    if (!req.user || !req.user.roles.some((role: any) => role.name === roleName)) {
-      return res.status(403).json({ 
-        error: "Insufficient role", 
-        required: roleName 
-      });
-    }
-    next();
-  };
-};
+// GET /admin/audit-logs - Get audit logs (requires ADMIN_AUDIT_READ permission)
+userManagementRouter.get('/audit-logs', requirePermission(PERMISSIONS.ADMIN_AUDIT_READ), async (req: AuthRequest, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 50;
+    const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+    
+    const auditLogs = await storage.getAuditLogs(userId, limit);
+    
+    // Enrich with user details
+    const enrichedLogs = await Promise.all(
+      auditLogs.map(async (log) => {
+        const admin = await storage.getUserById(log.adminId);
+        const targetUser = log.targetUserId ? await storage.getUserById(log.targetUserId) : null;
+        
+        return {
+          ...log,
+          adminName: admin ? `${admin.firstName} ${admin.lastName} (${admin.username})` : 'Unknown',
+          targetUserName: targetUser ? `${targetUser.firstName} ${targetUser.lastName} (${targetUser.username})` : null
+        };
+      })
+    );
+
+    res.json({ auditLogs: enrichedLogs });
+  } catch (error) {
+    console.error('Get audit logs error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+export { userManagementRouter };
