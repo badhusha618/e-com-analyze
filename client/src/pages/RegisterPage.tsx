@@ -1,28 +1,52 @@
 import { useState } from 'react';
-import { Link } from 'wouter';
+import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useAuth } from '@/hooks/useAuth';
-import type { RegisterRequest } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
 
 export default function RegisterPage() {
-  const { register, registerError, isRegisterLoading } = useAuth();
-  const [formData, setFormData] = useState<RegisterRequest>({
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    role: 'user',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    register(formData);
+    
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: 'Registration failed',
+        description: 'Passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // Mock registration - will be replaced with Spring Boot API call
+      toast({
+        title: 'Registration successful',
+        description: 'Your account has been created. Please sign in.',
+      });
+      navigate('/login');
+    } catch (error: any) {
+      toast({
+        title: 'Registration failed',
+        description: error.message || 'Failed to create account',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,123 +57,83 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            Create Account
-          </CardTitle>
-          <CardDescription className="text-center">
-            Sign up to access your ecommerce analytics dashboard
+        <CardHeader>
+          <CardTitle>Create Account</CardTitle>
+          <CardDescription>
+            Sign up for an analytics dashboard account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {registerError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>
-                {registerError instanceof Error ? registerError.message : 'Registration failed. Please try again.'}
-              </AlertDescription>
-            </Alert>
-          )}
-          
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  type="text"
-                  value={formData.firstName || ''}
-                  onChange={handleChange}
-                  placeholder="First name"
-                  disabled={isRegisterLoading}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  type="text"
-                  value={formData.lastName || ''}
-                  onChange={handleChange}
-                  placeholder="Last name"
-                  disabled={isRegisterLoading}
-                />
-              </div>
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 name="username"
                 type="text"
-                required
                 value={formData.username}
                 onChange={handleChange}
                 placeholder="Choose a username"
-                disabled={isRegisterLoading}
+                required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                required
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
-                disabled={isRegisterLoading}
+                required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
-                required
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="Create a password"
-                disabled={isRegisterLoading}
+                required
               />
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="confirmPassword">Confirm Password</Label>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
                 type="password"
-                required
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 placeholder="Confirm your password"
-                disabled={isRegisterLoading}
+                required
               />
             </div>
-            
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isRegisterLoading}
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
             >
-              {isRegisterLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? 'Creating Account...' : 'Create Account'}
             </Button>
           </form>
-          
           <div className="mt-4 text-center text-sm">
-            <span className="text-gray-600">Already have an account? </span>
-            <Link href="/login" className="text-blue-600 hover:text-blue-500 font-medium">
+            <span className="text-gray-600 dark:text-gray-400">
+              Already have an account?{' '}
+            </span>
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="text-blue-600 hover:text-blue-500 dark:text-blue-400"
+            >
               Sign in
-            </Link>
+            </button>
           </div>
         </CardContent>
       </Card>

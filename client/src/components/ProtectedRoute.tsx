@@ -1,20 +1,14 @@
-import { useEffect } from 'react';
+import { ReactNode } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      setLocation('/login');
-    }
-  }, [user, isLoading, setLocation]);
+  const { isAuthenticated, isLoading } = useAuth();
+  const [, navigate] = useLocation();
 
   if (isLoading) {
     return (
@@ -24,7 +18,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
+    navigate('/login');
     return null;
   }
 
