@@ -261,7 +261,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
 });
 
 export const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Valid email is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -271,6 +271,10 @@ export const registerSchema = insertUserSchema.extend({
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
+
+// Export types for authentication
+export type LoginData = z.infer<typeof loginSchema>;
+export type RegisterData = z.infer<typeof registerSchema>;
 
 // Types
 export type Product = typeof products.$inferSelect;

@@ -38,7 +38,7 @@ const getUserPermissions = async (userId: number): Promise<string[]> => {
   }
   
   // Remove duplicates and return
-  return [...new Set(permissions)];
+  return Array.from(new Set(permissions));
 };
 
 // POST /auth/register
@@ -179,8 +179,8 @@ authRouter.post('/login', async (req, res: Response) => {
 
     const loginData: LoginData = validationResult.data;
 
-    // Find user by email or username
-    const user = await storage.getUserByUsernameOrEmail(loginData.email);
+    // Find user by email
+    const user = await storage.getUserByEmail(loginData.email);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
