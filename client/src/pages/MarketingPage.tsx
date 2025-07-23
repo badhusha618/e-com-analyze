@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,21 +179,18 @@ export default function MarketingPage() {
 
   if (error) {
     return (
-      <AppLayout title="Marketing">
-        <div className="p-6">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-red-600 dark:text-red-400">Failed to load marketing data</p>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600 dark:text-red-400">Failed to load marketing data</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <AppLayout title="Marketing" loading={isLoading}>
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Marketing Dashboard</h1>
@@ -468,7 +464,6 @@ export default function MarketingPage() {
           </Card>
         )}
       </div>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

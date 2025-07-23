@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import AppLayout from "@/components/layout/AppLayout";
 import {
   Table,
   TableBody,
@@ -155,21 +154,18 @@ export default function CustomersPage() {
 
   if (error) {
     return (
-      <AppLayout title="Customers">
-        <div className="p-6">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-red-600 dark:text-red-400">Failed to load customer data</p>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600 dark:text-red-400">Failed to load customer data</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <AppLayout title="Customers" loading={isLoading}>
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Customers</h1>
@@ -326,7 +322,6 @@ export default function CustomersPage() {
           </div>
         </CardContent>
       </Card>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

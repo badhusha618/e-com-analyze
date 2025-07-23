@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -145,21 +144,18 @@ export default function AlertsPage() {
 
   if (error) {
     return (
-      <AppLayout title="Alerts">
-        <div className="p-6">
-          <Card>
-            <CardContent className="p-6">
-              <p className="text-red-600 dark:text-red-400">Failed to load alerts</p>
-            </CardContent>
-          </Card>
-        </div>
-      </AppLayout>
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600 dark:text-red-400">Failed to load alerts</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <AppLayout title="Alerts" loading={isLoading}>
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Real-Time Alerts</h1>
@@ -336,7 +332,7 @@ export default function AlertsPage() {
         )}
         
         {filteredAlerts.map((alert) => (
-          <Card key={alert.id} className={`border-l-4 ${getAlertColor(alert.severity, alert.isRead)}`}>
+          <Card key={alert.id} className={`border-l-4 ${getAlertColor(alert.severity, !!alert.isRead)}`}>
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
@@ -397,7 +393,7 @@ export default function AlertsPage() {
                 <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                   <p className="text-sm font-medium mb-2">Additional Details:</p>
                   <pre className="text-xs text-muted-foreground overflow-x-auto">
-                    {JSON.stringify(alert.metadata as any, null, 2)}
+                    {typeof alert.metadata === 'string' ? alert.metadata : JSON.stringify(alert.metadata, null, 2)}
                   </pre>
                 </div>
               )}
@@ -405,7 +401,6 @@ export default function AlertsPage() {
           </Card>
         ))}
       </div>
-      </div>
-    </AppLayout>
+    </div>
   );
 }

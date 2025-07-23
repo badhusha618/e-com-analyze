@@ -39,7 +39,7 @@ function Router() {
       <Route path="/">
         {user ? (
           <ProtectedRoute>
-            <AppLayout>
+            <AppLayout title="Dashboard">
               <Dashboard />
             </AppLayout>
           </ProtectedRoute>
@@ -50,7 +50,7 @@ function Router() {
       
       <Route path="/products">
         <ProtectedRoute>
-          <AppLayout>
+          <AppLayout title="Products">
             <ProductsPage />
           </AppLayout>
         </ProtectedRoute>
@@ -58,7 +58,7 @@ function Router() {
       
       <Route path="/customers">
         <ProtectedRoute>
-          <AppLayout>
+          <AppLayout title="Customers">
             <CustomersPage />
           </AppLayout>
         </ProtectedRoute>
@@ -66,7 +66,7 @@ function Router() {
       
       <Route path="/reviews">
         <ProtectedRoute>
-          <AppLayout>
+          <AppLayout title="Reviews">
             <ReviewsPage />
           </AppLayout>
         </ProtectedRoute>
@@ -74,7 +74,7 @@ function Router() {
       
       <Route path="/marketing">
         <ProtectedRoute>
-          <AppLayout>
+          <AppLayout title="Marketing">
             <MarketingPage />
           </AppLayout>
         </ProtectedRoute>
@@ -82,7 +82,7 @@ function Router() {
       
       <Route path="/alerts">
         <ProtectedRoute>
-          <AppLayout>
+          <AppLayout title="Alerts">
             <AlertsPage />
           </AppLayout>
         </ProtectedRoute>
