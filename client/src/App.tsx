@@ -7,13 +7,87 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/Dashboard";
 import ProductsPage from "@/pages/ProductsPage";
+import CustomersPage from "@/pages/CustomersPage";
+import ReviewsPage from "@/pages/ReviewsPage";
+import MarketingPage from "@/pages/MarketingPage";
+import AlertsPage from "@/pages/AlertsPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import AppLayout from "@/components/layout/AppLayout";
 import NotFound from "@/pages/not-found";
+import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/products" component={ProductsPage} />
+      {/* Public routes */}
+      <Route path="/login" component={LoginPage} />
+      <Route path="/register" component={RegisterPage} />
+      
+      {/* Protected routes */}
+      <Route path="/">
+        {user ? (
+          <ProtectedRoute>
+            <AppLayout>
+              <Dashboard />
+            </AppLayout>
+          </ProtectedRoute>
+        ) : (
+          <LoginPage />
+        )}
+      </Route>
+      
+      <Route path="/products">
+        <ProtectedRoute>
+          <AppLayout>
+            <ProductsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/customers">
+        <ProtectedRoute>
+          <AppLayout>
+            <CustomersPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/reviews">
+        <ProtectedRoute>
+          <AppLayout>
+            <ReviewsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/marketing">
+        <ProtectedRoute>
+          <AppLayout>
+            <MarketingPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/alerts">
+        <ProtectedRoute>
+          <AppLayout>
+            <AlertsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
       <Route component={NotFound} />
     </Switch>
   );

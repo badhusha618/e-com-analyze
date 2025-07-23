@@ -1,0 +1,126 @@
+To create the pages for Customers, Reviews, Marketing, and Alerts using Replit AI, you can provide detailed prompts that leverage the AI's capabilities for code generation and integration within your chosen tech stack (React, Spring Boot, PostgreSQL, Kafka).
+Here are comprehensive prompts for each page, incorporating best practices for interacting with AI assistants like Replit Agent, and drawing on your specified system architecture:
+General Guidance for Replit AI
+Before you begin, remember these best practices for effective "vibe coding" with Replit AI:
+• Be specific and direct in your prompts.
+• Break down complex tasks into smaller, actionable steps. You can ask the AI to first outline a step-by-step plan for implementation and wait for your confirmation before proceeding.
+• Leverage frameworks: Explicitly mention React and React Bootstrap for the frontend UI.
+• Provide relevant context: If you have existing code snippets, API contracts, or database schemas (like the PostgreSQL schema you provided), reference them or include them in your prompt for better accuracy.
+• Use Checkpoints frequently: This allows you to save your development state and roll back if the AI's suggestions lead to unintended issues.
+• For debugging, provide the exact error message and relevant code snippet to the AI for targeted fixes. You can also ask the AI to add extensive logging statements.
+• Manage secrets: For any API keys or sensitive information, use Replit's Secrets Manager instead of hardcoding them.
+Prompts for Each Page:
+1. Customers Page
+Goal: Create a React component to display customer information, including segmentation and RFM scores, retrieved from your Spring Boot backend.
+Prompt for Replit AI: "Please generate a React component for a 'Customers Dashboard' page.
+• UI Framework: Use React Bootstrap components for the layout, tables, and any interactive elements.
+• Data Source: The component should fetch customer data from a Spring Boot REST API endpoint. Assume the API will return a list of customer objects, each containing customer_id, email, first_name, last_name, registration_date, last_purchase_date, and segment fields, along with their recency_score, frequency_score, and monetary_score.
+• Display Features:
+    ◦ Display customers in a sortable and paginated table.
+    ◦ Include columns for first_name, last_name, email, registration_date, last_purchase_date, segment, recency_score, frequency_score, and monetary_score.
+    ◦ Visually highlight customer segments (e.g., 'high_value', 'frequent', 'inactive') using distinct table row styles or badges.
+• Data Fetching: Implement data fetching using React Hooks like useState and useEffect.
+• Please provide a step-by-step plan for creating this component, including how to structure the React files and integrate with a hypothetical API endpoint (e.g., /api/customers). Do not proceed with code generation until I confirm the plan."
+2. Reviews Page
+Goal: Create a React component to display product reviews, including sentiment analysis, and highlight low-rated products.
+Prompt for Replit AI: "Develop a React component for a 'Product Reviews' page.
+• UI Framework: Utilise React Bootstrap for styling and layout.
+• Data Source: The component will consume review data from a Spring Boot REST API that provides information based on the product_reviews PostgreSQL table. Each review object will include review_id, product_id, customer_id, rating, review_text, review_date, and sentiment_score (-1.0 to 1.0).
+• Display Features:
+    ◦ Present reviews in a card or list format, showing the product, rating (e.g., with stars), and the review text.
+    ◦ Display the sentiment score next to each review, possibly with a colour indicator (e.g., green for positive, red for negative).
+    ◦ Include a feature to filter reviews by rating (e.g., showing only 1-star or 5-star reviews).
+    ◦ Consider a small section or highlight for 'Low-Rated Products'.
+• Interaction: Implement basic sorting by date or rating.
+• Propose a detailed implementation plan before generating the code."
+3. Marketing Page
+Goal: Create a React component for a Marketing Dashboard, displaying campaign performance metrics.
+Prompt for Replit AI: "Generate a React component for a 'Marketing Dashboard' page.
+• UI Framework: Employ React Bootstrap for all UI elements, such as cards, tables, and navigation tabs.
+• Data Source: Data for campaign performance will be retrieved from a Spring Boot REST API endpoint, reflecting information from marketing_campaigns and campaign_performance PostgreSQL tables. Key metrics to expect include channel, total_spend, revenue_generated, roi_pct, conversions, and cost_per_conversion.
+• Display Features:
+    ◦ Provide a summary view of overall marketing performance (e.g., total revenue generated, total spend, average ROI).
+    ◦ Include a table breaking down performance by marketing channel (e.g., 'email', 'social', 'ppc').
+    ◦ Display ROI, Cost Per Acquisition (CAC), and total conversions for each channel.
+    ◦ Consider visual elements like progress bars or simple charts (describe these in text if no charting library is specified) for key metrics.
+• Plan the component structure and outline the necessary API calls."
+4. Alerts Page
+Goal: Create a React component to display real-time alerts from your Kafka-driven microservices.
+Prompt for Replit AI: "Design and implement a React component for a 'Real-Time Alerts' dashboard.
+• UI Framework: Use React Bootstrap for alert messages (e.g., Alert components) and a structured list or table to display them.
+• Data Source: This component should simulate receiving real-time alerts (e.g., 'SALES_DROP', 'NEGATIVE_REVIEW', 'STOCKOUT_RISK') from a Spring Boot API endpoint that exposes Kafka messages. The API should provide the alert type and a descriptive message.
+• Display Features:
+    ◦ Alerts should be displayed as they arrive, with the most recent at the top.
+    ◦ Each alert should clearly show its type and message.
+    ◦ Implement a polling mechanism (e.g., setInterval to call the backend API every few seconds) to fetch new alerts.
+    ◦ Visually distinguish different alert types (e.g., red for 'SALES_DROP', yellow for 'STOCKOUT_RISK', grey for 'NEGATIVE_REVIEW').
+• Provide a detailed plan for setting up the real-time display and handling incoming data before writing code."
+Customers
+Reviews
+Marketing
+Alerts
+
+
+Give me prompt for all page to create in replit AI in React App
+
+When working with Replit AI to create your React application pages, it's beneficial to adopt a systematic approach, often referred to as "vibe coding". This involves a combination of clear communication, strategic planning, and iterative refinement.
+Here are some best practices for interacting with Replit AI to achieve optimal results:
+• Procedural Thinking: Before writing any prompts, define the problem space, plan the Minimum Viable Product (MVP) by breaking down high-level goals into smaller, actionable steps, and anticipate edge cases. You can even draft wireframes or requirements documents to clarify your vision.
+• Leverage Frameworks: Explicitly mention the frameworks and libraries you intend to use, such as React and React Bootstrap, so the AI can generate relevant code. React Bootstrap replaces Bootstrap JavaScript, building components from scratch as true React components without dependencies like jQuery, and is designed for accessibility.
+• Build in Checkpoints: Work incrementally by defining small goals and testing each step. Replit Agent automatically creates "Checkpoints" that capture your development state, allowing you to rollback if something breaks. This is akin to comprehensive commits in version control.
+• Debug Methodically: When errors occur, understand the error message, gather clues from the console, isolate the problem, and provide the AI with the exact error message, relevant code snippets, your intended action, and what you've already tried. Replit AI can suggest fixes for bugs.
+• Master Context: Provide only information directly relevant to the current task, avoiding unrelated code or previous instructions. Use multimodal inputs like code snippets, file attachments, and URLs for documentation. When starting a significantly new feature, consider using a "New chat" to prevent the AI from being confused by unrelated context.
+• Manage Secrets: For sensitive information like API keys or database connection strings, use Replit's built-in Secrets Manager instead of hardcoding them into your public code.
+
+--------------------------------------------------------------------------------
+Below are the detailed prompts for each of your desired pages, incorporating your specified technologies (React, Spring Boot, PostgreSQL, Kafka, React Bootstrap) and the best practices for Replit AI. Each prompt requests a step-by-step plan before code generation to ensure alignment with your vision.
+1. Customers Page Prompt
+Goal: Create a React component to display customer information, including segmentation and RFM (Recency, Frequency, Monetary) scores.
+Prompt for Replit AI:
+"Please generate a React component for a 'Customers Dashboard' page.
+• UI Framework: Use React Bootstrap components for all UI elements, including layout, tables, and any interactive features.
+• Data Source: The component should fetch customer data from a Spring Boot REST API endpoint, which will serve data from a PostgreSQL database. Assume the API provides customer objects with the following fields: customer_id, email, first_name, last_name, registration_date, last_purchase_date, and segment (e.g., 'high_value', 'frequent', 'inactive'). Additionally, each customer object will include their recency_score, frequency_score, and monetary_score.
+• Display Features:
+    ◦ Display customers in a sortable and paginated table [Customers Page Prompt in previous turn].
+    ◦ Include columns for first_name, last_name, email, registration_date, last_purchase_date, segment, recency_score, frequency_score, and monetary_score.
+    ◦ Visually highlight different customer segment categories using distinct table row styles or badges to easily identify them.
+• Data Fetching: Implement data fetching using React Hooks such as useState and useEffect to manage component state and side effects. The data fetching should handle loading states and potential errors.
+• Interaction: Allow for basic sorting by column headers (e.g., sort by last_purchase_date or recency_score).
+• Please provide a step-by-step plan for creating this component, including how to structure the React files, defining any necessary React hooks (e.g., a custom hook for pagination or sorting if appropriate), and integrating with a hypothetical Spring Boot API endpoint (e.g., /api/customers). Do not proceed with code generation until I confirm the plan."
+2. Reviews Page Prompt
+Goal: Create a React component to display product reviews, including sentiment analysis results, and highlight products with low ratings.
+Prompt for Replit AI:
+"Develop a React component for a 'Product Reviews' page.
+• UI Framework: Utilise React Bootstrap for styling and layout, such as Card components for individual reviews and ListGroup for lists.
+• Data Source: The component will consume review data from a Spring Boot REST API endpoint. This API will expose information originating from your PostgreSQL product_reviews table. Each review object will contain review_id, product_id, customer_id, rating, review_text, review_date, and sentiment_score (a float between -1.0 for negative and 1.0 for positive). The overall platform uses Kafka for streaming ecommerce.reviews data, but the frontend will interact with the Spring Boot API layer.
+• Display Features:
+    ◦ Present reviews in a card or list format, clearly showing the product ID, numerical rating (perhaps with visual stars), and the full review_text.
+    ◦ Display the sentiment_score next to each review, using a colour indicator (e.g., red for negative scores, green for positive scores, yellow for neutral).
+    ◦ Include interactive elements to filter reviews by rating (e.g., buttons or a dropdown to show only 1-star, 3-star, or 5-star reviews).
+    ◦ Add a prominent section or visual highlight for 'Low-Rated Products' (e.g., products with an average rating below a certain threshold or a high volume of negative reviews).
+• Interaction: Implement basic sorting options, such as by review_date (newest first) or rating.
+• Plan the component structure and outline the necessary API calls for fetching and filtering reviews. Propose how useState and useEffect will be used for state management and data fetching."
+3. Marketing Page Prompt
+Goal: Create a React component for a Marketing Dashboard, displaying campaign performance metrics.
+Prompt for Replit AI:
+"Generate a React component for a 'Marketing Dashboard' page.
+• UI Framework: Employ React Bootstrap for all UI elements, such as Card components for summary metrics, Table for detailed breakdowns, and Nav/Tabs if different views are needed (e.g., "Overall" vs. "Channel-specific").
+• Data Source: Data for campaign performance will be retrieved from a Spring Boot REST API endpoint. This API should aggregate information from your PostgreSQL marketing_campaigns and campaign_performance tables. Key metrics to expect include channel, total_spend, revenue_generated, roi_pct (ROI percentage), conversions, and cost_per_conversion (CAC).
+• Display Features:
+    ◦ Provide a summary view of overall marketing performance at the top (e.g., total revenue generated across all campaigns, total marketing spend, average ROI).
+    ◦ Include a table breaking down performance by marketing channel (e.g., 'email', 'social', 'ppc').
+    ◦ For each channel, display the total_spend, revenue_generated, roi_pct, conversions, and cost_per_conversion.
+    ◦ If feasible with basic React Bootstrap or simple HTML/CSS, include visual elements like progress bars or badges to indicate performance trends for key metrics (e.g., a green badge for positive ROI, red for negative).
+• Plan the component structure, including any sub-components for displaying individual metrics or tables. Outline the necessary API calls and how useState and useEffect will manage the dashboard's data and loading states. Ensure the plan considers how to represent aggregated data versus per-channel data."
+4. Alerts Page Prompt
+Goal: Create a React component to display real-time alerts from your Kafka-driven microservices.
+Prompt for Replit AI:
+"Design and implement a React component for a 'Real-Time Alerts' dashboard.
+• UI Framework: Use React Bootstrap for alert messages (e.g., Alert components) and a structured ListGroup or Table to display them.
+• Data Source: This component should display real-time alerts that are generated by your Spring Boot microservices, which consume events from Kafka topics. The frontend will fetch these alerts from a Spring Boot API endpoint that exposes the latest alerts (e.g., /api/alerts/latest). Expected alert types include 'SALES_DROP', 'NEGATIVE_REVIEW', 'STOCKOUT_RISK', along with a descriptive message for each.
+• Display Features:
+    ◦ Alerts should be displayed as they arrive, with the most recent alert appearing at the top of the list.
+    ◦ Each alert should clearly show its type and message.
+    ◦ Implement a polling mechanism using setInterval to call the backend API every few seconds (e.g., every 5-10 seconds) to fetch new alerts. Ensure clearInterval is used on component unmount to prevent memory leaks.
+    ◦ Visually distinguish different alert types using varying React Bootstrap Alert variants (e.g., danger for 'SALES_DROP', warning for 'STOCKOUT_RISK', info for 'NEGATIVE_REVIEW') or custom CSS classes.
+• Plan the component structure, focusing on how to manage the list of alerts dynamically and how the polling mechanism will be integrated using useEffect. Include considerations for handling empty states and potential API errors during polling."
