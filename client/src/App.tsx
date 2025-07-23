@@ -11,6 +11,7 @@ import CustomersPage from "@/pages/CustomersPage";
 import ReviewsPage from "@/pages/ReviewsPage";
 import MarketingPage from "@/pages/MarketingPage";
 import AlertsPage from "@/pages/AlertsPage";
+import SentimentPage from "@/pages/SentimentPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -84,6 +85,14 @@ function Router() {
         <ProtectedRoute>
           <AppLayout title="Alerts">
             <AlertsPage />
+          </AppLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/sentiment">
+        <ProtectedRoute>
+          <AppLayout title="Sentiment Analysis">
+            <SentimentPage />
           </AppLayout>
         </ProtectedRoute>
       </Route>

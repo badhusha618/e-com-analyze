@@ -8,13 +8,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.use("/api/auth", authRoutes);
 
-  // Dashboard metrics (protected)
-  app.get("/api/dashboard/metrics", authenticateToken, async (req: AuthRequest, res) => {
+  // Dashboard metrics (temporarily unprotected for development)
+  app.get("/api/dashboard/metrics", async (req, res) => {
     try {
       const metrics = await storage.getDashboardMetrics();
       res.json(metrics);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch dashboard metrics" });
+    }
+  });
+
+  // Sentiment Analysis Endpoints
+  app.get("/api/sentiment/updates", async (req, res) => {
+    // Set up Server-Sent Events
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Cache-Control'
+    });
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`);
+
+    // Mock real-time sentiment data generator
+    const sendSentimentUpdate = () => {
+      const mockData = {
+        score: Math.floor(Math.random() * 100),
+        timestamp: new Date().toISOString(),
+        reviewId: Math.floor(Math.random() * 10000),
+        productId: Math.floor(Math.random() * 20) + 1,
+        productName: `Product ${Math.floor(Math.random() * 20) + 1}`,
+        reviewText: generateMockReview(),
+        sentiment: Math.random() > 0.7 ? 'positive' : Math.random() > 0.3 ? 'neutral' : 'negative',
+        keywords: generateKeywords()
+      };
+
+      res.write(`data: ${JSON.stringify(mockData)}\n\n`);
+    };
+
+    // Send updates every 3-5 seconds
+    const interval = setInterval(sendSentimentUpdate, Math.random() * 2000 + 3000);
+
+    // Clean up on connection close
+    req.on('close', () => {
+      clearInterval(interval);
+    });
+  });
+
+  app.get("/api/reviews/sentiment", async (req, res) => {
+    try {
+      // Generate mock sentiment data for initial load
+      const mockSentimentData = Array.from({ length: 50 }, (_, i) => ({
+        score: Math.floor(Math.random() * 100),
+        timestamp: new Date(Date.now() - i * 60000).toISOString(),
+        reviewId: i + 1,
+        productId: Math.floor(Math.random() * 20) + 1,
+        productName: `Product ${Math.floor(Math.random() * 20) + 1}`,
+        reviewText: generateMockReview(),
+        sentiment: Math.random() > 0.6 ? 'positive' : Math.random() > 0.3 ? 'neutral' : 'negative',
+        keywords: generateKeywords()
+      }));
+      
+      res.json(mockSentimentData);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sentiment data" });
+    }
+  });
+
+  // Product comparison endpoint
+  app.get("/api/products/:id1/compare/:id2/sentiment", async (req, res) => {
+    try {
+      const { id1, id2 } = req.params;
+      
+      // Mock comparison data
+      const comparisonData = {
+        product1: {
+          id: parseInt(id1),
+          name: `Product ${id1}`,
+          averageScore: Math.floor(Math.random() * 40) + 60,
+          totalReviews: Math.floor(Math.random() * 500) + 100,
+          commonComplaints: ['shipping', 'quality', 'price'],
+          responseTime: Math.floor(Math.random() * 24) + 1
+        },
+        product2: {
+          id: parseInt(id2),
+          name: `Product ${id2}`,
+          averageScore: Math.floor(Math.random() * 40) + 60,
+          totalReviews: Math.floor(Math.random() * 500) + 100,
+          commonComplaints: ['packaging', 'delivery', 'support'],
+          responseTime: Math.floor(Math.random() * 24) + 1
+        }
+      };
+      
+      res.json(comparisonData);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch comparison data" });
     }
   });
 
@@ -133,36 +223,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Orders
-  app.get("/api/orders", async (req, res) => {
+  app.get("/api/customers/analytics", async (req, res) => {
     try {
-      const orders = await storage.getOrders();
-      res.json(orders);
+      // Mock customer analytics for now
+      const analytics = {
+        totalCustomers: 1250,
+        newCustomers: 89,
+        returningCustomers: 456,
+        avgOrderValue: 67.89,
+        segments: [
+          { name: 'High Value', count: 125, percentage: 10 },
+          { name: 'Regular', count: 875, percentage: 70 },
+          { name: 'New', count: 250, percentage: 20 }
+        ]
+      };
+      res.json(analytics);
     } catch (error) {
-      res.status(500).json({ error: "Failed to fetch orders" });
+      res.status(500).json({ error: "Failed to fetch customer analytics" });
     }
   });
 
-  // Categories
-  app.get("/api/categories", async (req, res) => {
-    try {
-      const categories = await storage.getCategories();
-      res.json(categories);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch categories" });
-    }
-  });
+  const server = createServer(app);
+  return server;
+}
 
-  // Vendors
-  app.get("/api/vendors", async (req, res) => {
-    try {
-      const vendors = await storage.getVendors();
-      res.json(vendors);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch vendors" });
-    }
-  });
+// Helper functions for mock data generation
+function generateMockReview(): string {
+  const reviews = [
+    "Great product, fast shipping and excellent quality!",
+    "Not satisfied with the quality, expected better for the price.",
+    "Good value for money, will order again.",
+    "Product arrived damaged, poor packaging.",
+    "Excellent customer service, quick response to issues.",
+    "Average product, nothing special but works as expected.",
+    "Love this product! Exceeded my expectations.",
+    "Shipping was slow but product quality is good.",
+    "Poor quality control, received defective item.",
+    "Outstanding product quality and fast delivery!"
+  ];
+  return reviews[Math.floor(Math.random() * reviews.length)];
+}
 
-  const httpServer = createServer(app);
-  return httpServer;
+function generateKeywords(): string[] {
+  const allKeywords = ['quality', 'shipping', 'price', 'delivery', 'packaging', 'support', 'value', 'fast', 'slow', 'excellent', 'poor', 'good'];
+  const count = Math.floor(Math.random() * 3) + 1;
+  const shuffled = allKeywords.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
 }

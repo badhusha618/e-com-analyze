@@ -8,6 +8,7 @@ import {
   Star,
   Lightbulb,
   AlertTriangle,
+  Brain,
 } from 'lucide-react';
 
 const navigationItems = [
@@ -30,6 +31,11 @@ const navigationItems = [
     label: 'Reviews',
     href: '/reviews',
     icon: Star,
+  },
+  {
+    label: 'Sentiment',
+    href: '/sentiment',
+    icon: Brain,
   },
   {
     label: 'Marketing',

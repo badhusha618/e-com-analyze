@@ -1,0 +1,98 @@
+
+1. Real-time sentiment monitoring panel that:
+   - Connects to Spring Boot SSE endpoint /api/sentiment/updates
+   - Shows animated gauge chart (0-100 score)
+   - Lists live incoming reviews with sentiment highlights
+2. Product comparison view with:
+   - Side-by-side sentiment charts for 2 products
+   - Common complaint word clouds
+   - Response time metrics
+3. Dark/light mode toggle using Tailwind CSS
+4. Mock service worker for API responses during development
+5. Comprehensive unit tests with Jest + React Testing Library
+
+Generate:
+- Custom useSentiment hook with SSE support
+- Animated gauge component using D3.js
+- Responsive grid layout
+- Error boundary component
+- Storybook stories for all components
+3. Full-Stack Integration Prompt
+
+Build a complete feature for AI-powered review analysis with:
+
+[BACKEND] Spring Boot service that:
+1. Exposes REST API with:
+   - POST /api/reviews/analyze (sync analysis)
+   - GET /api/reviews/trends?productId=X&days=30
+2. Kafka Streams processor that:
+   - Enriches review events with sentiment
+   - Detects rating anomalies (3σ deviation)
+   - Maintains product sentiment state store
+3. PostgreSQL schema for:
+   - Review metadata (rating, date, verified)
+   - Sentiment results (score, keywords)
+   - Vendor responses
+
+[FRONTEND] React dashboard with:
+1. Review sentiment heatmap (calendar view)
+2. Keyword extraction visualization
+3. Vendor response time tracker
+4. CSV export functionality
+5. Accessibility-compliant UI (WCAG AA)
+
+Include:
+- Docker-compose.yml for local dev
+- API contract (OpenAPI 3.0 spec)
+- ER diagram for database
+- Performance optimization notes
+4. AI Microservice Prompt (Python)
+text
+Create a Python FastAPI service that:
+1. Provides two endpoints:
+   - POST /analyze (returns sentiment score and detected issues)
+   - GET /models (lists available models)
+2. Uses HuggingFace's transformers with:
+   - DistilBERT base model for sentiment
+   - NER to extract product features
+   - Custom threshold tuning
+3. Includes:
+   - Prometheus metrics endpoint
+   - JWT authentication
+   - Rate limiting (100 RPM per IP)
+   - GPU acceleration support
+4. Complete test suite with 90%+ coverage
+
+Generate:
+- Full FastAPI implementation
+- Model loading/caching logic
+- Dockerfile with ONNX runtime
+- Load test script (Locust)
+- CI/CD pipeline example
+5. Real-Time Alerting Prompt
+text
+Build a React notification center that:
+1. Subscribes to Kafka 'alerts' topic via Spring Boot WS
+2. Displays toast notifications for:
+   - Negative review spikes
+   - Sentiment trend changes
+   - Vendor response delays
+3. Includes:
+   - Priority sorting (critical/warning/info)
+   - Action buttons ("View Product", "Contact Vendor")
+   - "Mark as resolved" functionality
+4. Persists alerts in IndexedDB
+5. Has desktop notification support
+
+Generate:
+- Custom useAlerts hook with WebSocket
+- Notification center component
+- Context menu for alert actions
+- Mock alert generator
+- Cypress e2e tests
+
+Update the screens and backend APIs 
+- Update without issue with local setup
+- Update readme file for local and prod setup
+- Update tech details in seperate readme file
+- Update screens shorts to explain everything about full project
