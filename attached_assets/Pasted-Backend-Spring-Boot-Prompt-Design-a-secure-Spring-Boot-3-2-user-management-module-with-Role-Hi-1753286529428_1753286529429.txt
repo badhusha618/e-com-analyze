@@ -1,0 +1,96 @@
+Backend (Spring Boot) Prompt
+*"Design a secure Spring Boot 3.2 user management module with:
+
+Role Hierarchy:
+
+SUPER_ADIN (full access)
+
+USER_ADMIN (CRUD users, no role changes)
+
+READER (view-only)
+
+Endpoints:
+
+POST /admin/users (Create - USER_ADMIN+)
+
+PUT /admin/users/{id}/roles (Update roles - SUPER_ADMIN only)
+
+DELETE /admin/users/{id} (Delete - SUPER_ADMIN only)
+
+Validation:
+
+Email/password policies
+
+Role escalation prevention
+
+Security:
+
+JWT with role claims
+
+Audit logging for all changes
+
+Failed attempt rate-limiting
+Describe the entity relationships, permission matrix, and API contracts without code."*
+
+Frontend (React Admin) Prompt
+*"Plan a React user management dashboard with:
+
+Role-Aware UI:
+
+Disabled DELETE button for non-SUPER_ADMIN
+
+Hidden role dropdown for USER_ADMIN
+
+Interactive Components:
+
+Filterable/sortable user table
+
+Multi-step creation form with password generator
+
+Undo buffer for accidental edits
+
+Security UX:
+
+2FA toggle (SUPER_ADMIN only)
+
+Session activity monitoring
+
+Bulk action confirmation modals
+Outline the component structure, permission checks, and audit trail display without implementation."*
+
+Key Features
+plaintext
+Copy
+Download
+1. Database Schema:
+   - users (id, email, encrypted_pw, status)  
+   - roles (id, name)  
+   - user_roles (user_id, role_id)  
+   - audit_log (admin_id, action, target_user, timestamp)
+
+2. State Flow:
+   SUPER_ADIN → [Create User] → [Assign Any Role]  
+   USER_ADMIN → [Edit User] → [Cannot Modify Roles]  
+   READER → [View Users] → [No Edit Controls]
+
+3. Validation Rules:
+   - Prevent self-deletion  
+   - Require 2+ admins for SUPER_ADMIN creation  
+   - Password history check (no reuse)  
+Mobile Optimization
+*"Add to frontend prompt:
+
+Priority+ Menu: Critical actions (lock account) always visible
+
+Offline Mode: Queue changes when disconnected
+
+Biometric Auth: Required for sensitive operations on mobile"*
+
+Approval Extensions
+*"For regulated environments:
+
+Change Requests: Non-SUPER_ADMINs submit for review
+
+Four-Eyes Principle: Critical changes require 2 admins
+
+Temporal Access: Role assignments expire after set duration"*

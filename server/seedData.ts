@@ -4,8 +4,14 @@ import {
   reviews, marketingCampaigns, alerts, salesMetrics
 } from '@shared/schema';
 
+import { seedRoles } from "./seedRoles";
+
 export async function seedDatabase(db: typeof dbType) {
   console.log('🌱 Starting database seeding...');
+  
+  try {
+    // Seed roles first (required for user management)
+    await seedRoles();
 
   // Seed Users
   console.log('👥 Seeding users...');
@@ -294,4 +300,8 @@ export async function seedDatabase(db: typeof dbType) {
   await db.insert(salesMetrics).values(metricsData);
 
   console.log('✅ Database seeding completed successfully!');
+  } catch (error) {
+    console.error('❌ Error seeding database:', error);
+    throw error;
+  }
 }

@@ -1,5 +1,9 @@
 import { 
   users, 
+  roles,
+  userRoles,
+  userAuditLog,
+  userSessions,
   products, 
   categories, 
   vendors, 
@@ -12,6 +16,15 @@ import {
   salesMetrics,
   type User, 
   type InsertUser,
+  type Role,
+  type NewRole,
+  type UserRole,
+  type NewUserRole,
+  type UserAuditLog,
+  type NewUserAuditLog,
+  type UserSession,
+  type NewUserSession,
+  type UserWithRoles,
   type Product,
   type InsertProduct,
   type Category,
@@ -39,8 +52,44 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserById(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByUsernameOrEmail(identifier: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserWithRoles(id: number): Promise<UserWithRoles | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, user: Partial<User>): Promise<User>;
+  deleteUser(id: number): Promise<boolean>;
+  
+  // Authentication methods
+  resetLoginAttempts(userId: number): Promise<void>;
+  incrementLoginAttempts(userId: number): Promise<number>;
+  lockUserAccount(userId: number, lockUntil: Date): Promise<void>;
+  updateLastLogin(userId: number): Promise<void>;
+  
+  // Roles
+  getRoles(): Promise<Role[]>;
+  getRole(id: number): Promise<Role | undefined>;
+  getRoleByName(name: string): Promise<Role | undefined>;
+  createRole(role: NewRole): Promise<Role>;
+  updateRole(id: number, role: Partial<Role>): Promise<Role>;
+  deleteRole(id: number): Promise<boolean>;
+  
+  // User Roles
+  getUserRoles(userId: number): Promise<UserRole[]>;
+  assignUserRole(userRole: NewUserRole): Promise<UserRole>;
+  removeUserRole(userId: number, roleId: number): Promise<boolean>;
+  updateUserRoles(userId: number, roleIds: number[], assignedBy: number): Promise<UserRole[]>;
+  
+  // Audit Log
+  createAuditLog(log: NewUserAuditLog): Promise<UserAuditLog>;
+  getAuditLogs(userId?: number, limit?: number): Promise<UserAuditLog[]>;
+  
+  // Sessions
+  createSession(session: NewUserSession): Promise<UserSession>;
+  getSession(sessionId: string): Promise<UserSession | undefined>;
+  updateSessionActivity(sessionId: string): Promise<void>;
+  deleteSession(sessionId: string): Promise<boolean>;
+  getUserSessions(userId: number): Promise<UserSession[]>;
 
   // Products
   getProducts(): Promise<Product[]>;
@@ -525,4 +574,6 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { DatabaseStorage } from './dbStorage';
+
+export const storage = new DatabaseStorage();

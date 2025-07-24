@@ -1,0 +1,127 @@
+Backend (Spring Boot) Prompt
+*"Design a secure user management module with:
+
+User CRUD Operations:
+
+POST /admin/users → Create users (with role assignment)
+
+PUT /admin/users/{id} → Update user details
+
+DELETE /admin/users/{id} → Soft/hard delete
+
+Role & Permission Control:
+
+PUT /admin/users/{id}/roles → Modify roles (SUPER_ADMIN only)
+
+GET /admin/permissions → List all page/operation permissions
+
+Access Control:
+
+Hierarchical roles (SUPER_ADMIN > DEPARTMENT_ADMIN > USER)
+
+Permission matrix (e.g., 'user:delete', 'report:generate')
+
+Security:
+
+JWT with role/permission claims
+
+Audit logging for all changes
+
+Password policy enforcement
+
+Features:
+
+Pagination/search for user lists
+
+Bulk operations (role assignment, status changes)
+Describe the database schema, API contracts, and permission validation logic without code."*
+
+Frontend (React) Prompt
+*"Plan an admin dashboard for user management with:
+
+User List View:
+
+Sortable/filterable table with pagination
+
+Role-based row actions (edit/delete buttons visible only to authorized roles)
+
+User Creation/Edit Forms:
+
+Dynamic permission checkboxes (grouped by module: 'Reports', 'Settings')
+
+Real-time feedback on permission conflicts
+
+Role Management Panel:
+
+Drag-and-drop permission assignment
+
+Clone existing roles
+
+Security Features:
+
+Session timeout warning during sensitive operations
+
+Change confirmation dialogs
+
+Last activity timestamps
+Outline the component hierarchy, permission checks, and audit log display without implementation."*
+
+Key Components
+Database Schema
+plaintext
+Copy
+Download
+1. users  
+   - id, email, password_hash, status (ACTIVE/SUSPENDED)  
+   - last_login_at, created_at  
+
+2. roles  
+   - id, name (SUPER_ADMIN, CONTENT_MANAGER), description  
+
+3. permissions  
+   - id, resource (e.g., 'user', 'report'), action (e.g., 'delete', 'view')  
+
+4. junction_tables  
+   - user_roles (user_id, role_id)  
+   - role_permissions (role_id, permission_id)  
+   - audit_logs (admin_id, action, target_id, old_values, new_values)  
+Permission Matrix Examples
+plaintext
+Copy
+Download
+| Role            | user:create | user:delete | report:view |  
+|-----------------|-------------|-------------|-------------|  
+| SUPER_ADMIN     | ✓           | ✓           | ✓           |  
+| DEPARTMENT_ADMIN| ✓           | ✗           | ✓           |  
+| USER            | ✗           | ✗           | ✓           |  
+API Endpoint Security
+plaintext
+Copy
+Download
+- DELETE /users/{id} → Requires 'user:delete'  
+- PUT /users/{id}/roles → Requires 'role:assign'  
+- GET /permissions → Requires 'permission:view'  
+Workflow Extensions
+For Just-In-Time Provisioning
+*"Add OAuth2 user auto-creation with default role assignment and admin approval queue for privileged roles."*
+
+For AI Anomaly Detection
+"Incorporate ML model to flag suspicious role changes (e.g., rapid privilege escalation) and require MFA confirmation."
+
+Mobile Optimization
+*"Add to frontend requirements:
+
+Priority+ pattern for action buttons (top-placement on small screens)
+
+Offline-capable forms with sync conflict resolution
+
+Biometric auth for sensitive operations"*
+
+Audit & Compliance
+*"Include in both prompts:
+
+Immutable audit logs with digital signatures
+
+GDPR-compliant data export/erasure workflows
+
+Role change approval chains for regulated environments"*
