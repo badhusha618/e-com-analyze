@@ -3,6 +3,12 @@ import dashboardReducer from './slices/dashboardSlice';
 import productsReducer from './slices/productsSlice';
 import alertsReducer from './slices/alertsSlice';
 import productsPageReducer from './slices/productsPageSlice';
+import customersReducer from './slices/customersSlice';
+import reviewsReducer from './slices/reviewsSlice';
+import marketingReducer from './slices/marketingSlice';
+import sentimentReducer from './slices/sentimentSlice';
+import userManagementReducer from './slices/userManagementSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +16,12 @@ export const store = configureStore({
     products: productsReducer,
     alerts: alertsReducer,
     productsPage: productsPageReducer,
+    customers: customersReducer,
+    reviews: reviewsReducer,
+    marketing: marketingReducer,
+    sentiment: sentimentReducer,
+    userManagement: userManagementReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

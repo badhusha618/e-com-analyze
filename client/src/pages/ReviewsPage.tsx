@@ -1,77 +1,54 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  selectFilteredReviews,
+  selectReviewAnalytics,
+  selectReviewFilters,
+  selectReviewsLoading,
+  selectReviewsError,
+} from "@/store/selectors";
+import {
+  fetchReviews,
+  fetchReviewAnalytics,
+  setFilters,
+  clearFilters,
+  updateReviewSentiment,
+} from "@/store/slices/reviewsSlice";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Star, TrendingDown, MessageSquare, AlertTriangle } from "lucide-react";
+import { Search, Star, TrendingDown, MessageSquare, AlertTriangle, X } from "lucide-react";
 import { format } from "date-fns";
-import type { Review, Product } from "@shared/schema";
-
-interface ReviewWithProduct extends Review {
-  product?: Product;
-  sentimentScore?: number;
-}
 
 export default function ReviewsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [ratingFilter, setRatingFilter] = useState("all");
-  const [sentimentFilter, setSentimentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<string>("reviewDate");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const dispatch = useAppDispatch();
+  
+  // Select state from Redux
+  const reviews = useAppSelector(selectFilteredReviews);
+  const analytics = useAppSelector(selectReviewAnalytics);
+  const filters = useAppSelector(selectReviewFilters);
+  const isLoading = useAppSelector(selectReviewsLoading);
+  const error = useAppSelector(selectReviewsError);
 
-  const { data: reviews = [], isLoading, error } = useQuery<ReviewWithProduct[]>({
-    queryKey: ["/api/reviews"],
-  });
+  // Fetch data on component mount
+  useEffect(() => {
+    dispatch(fetchReviews());
+    dispatch(fetchReviewAnalytics());
+  }, [dispatch]);
 
-  const { data: reviewAnalytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ["/api/reviews/analytics"],
-  });
+  const handleFilterChange = (key: string, value: string) => {
+    dispatch(setFilters({ [key]: value }));
+  };
 
-  // Filter and sort reviews
-  const filteredReviews = reviews
-    .filter(review => {
-      const matchesSearch = 
-        review.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.content?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.product?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesRating = ratingFilter === "all" || 
-        (ratingFilter === "low" && review.rating <= 2) ||
-        (ratingFilter === "high" && review.rating >= 4) ||
-        review.rating.toString() === ratingFilter;
-      
-      const matchesSentiment = sentimentFilter === "all" || review.sentiment === sentimentFilter;
-      
-      return matchesSearch && matchesRating && matchesSentiment;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case "rating":
-          aValue = a.rating;
-          bValue = b.rating;
-          break;
-        case "reviewDate":
-          aValue = new Date(a.reviewDate || 0).getTime();
-          bValue = new Date(b.reviewDate || 0).getTime();
-          break;
-        case "sentiment":
-          aValue = a.sentimentScore || 0;
-          bValue = b.sentimentScore || 0;
-          break;
-        default:
-          aValue = a.title || "";
-          bValue = b.title || "";
-      }
-      
-      if (sortOrder === "desc") {
-        return aValue > bValue ? -1 : 1;
-      }
-      return aValue < bValue ? -1 : 1;
-    });
+  const handleClearFilters = () => {
+    dispatch(clearFilters());
+  };
+
+  const handleSentimentUpdate = (reviewId: number, sentiment: string) => {
+    dispatch(updateReviewSentiment({ reviewId, sentiment }));
+  };
 
   const renderStars = (rating: number) => {
     return (
@@ -99,12 +76,6 @@ export default function ReviewsPage() {
       neutral: "secondary"
     } as const;
 
-    const colors = {
-      positive: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-      negative: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
-      neutral: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200"
-    };
-
     return (
       <Badge variant={variants[sentiment as keyof typeof variants] || "outline"}>
         {sentiment.charAt(0).toUpperCase() + sentiment.slice(1)}
@@ -121,32 +92,21 @@ export default function ReviewsPage() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="p-6">
         <Card>
           <CardContent className="p-6">
-            <p className="text-red-600 dark:text-red-400">Failed to load reviews</p>
+            <p className="text-red-600 dark:text-red-400">Failed to load reviews: {error}</p>
+            <Button 
+              onClick={() => {
+                dispatch(fetchReviews());
+                dispatch(fetchReviewAnalytics());
+              }}
+              className="mt-2"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -175,7 +135,9 @@ export default function ReviewsPage() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reviews.length.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : analytics?.totalReviews?.toLocaleString() || reviews.length.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
 
@@ -186,9 +148,9 @@ export default function ReviewsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold flex items-center gap-2">
-              {avgRating.toFixed(1)}
+              {isLoading ? "..." : analytics?.averageRating?.toFixed(1) || avgRating.toFixed(1)}
               <div className="flex">
-                {renderStars(Math.round(avgRating))}
+                {renderStars(Math.round(analytics?.averageRating || avgRating))}
               </div>
             </div>
           </CardContent>
@@ -201,7 +163,7 @@ export default function ReviewsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {lowRatedReviews.length}
+              {isLoading ? "..." : analytics?.lowRatedReviews || lowRatedReviews.length}
             </div>
             <p className="text-xs text-muted-foreground">
               {((lowRatedReviews.length / Math.max(1, reviews.length)) * 100).toFixed(1)}% of total
@@ -216,7 +178,7 @@ export default function ReviewsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {reviews.filter(r => r.sentiment === "positive").length}
+              {isLoading ? "..." : analytics?.positiveReviews || reviews.filter(r => r.sentiment === "positive").length}
             </div>
             <p className="text-xs text-muted-foreground">Positive reviews</p>
           </CardContent>
@@ -262,13 +224,13 @@ export default function ReviewsPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search reviews or products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.searchTerm}
+                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
                 className="pl-10"
               />
             </div>
             
-            <Select value={ratingFilter} onValueChange={setRatingFilter}>
+            <Select value={filters.ratingFilter} onValueChange={(value) => handleFilterChange('ratingFilter', value)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filter by rating" />
               </SelectTrigger>
@@ -284,7 +246,7 @@ export default function ReviewsPage() {
               </SelectContent>
             </Select>
             
-            <Select value={sentimentFilter} onValueChange={setSentimentFilter}>
+            <Select value={filters.sentimentFilter} onValueChange={(value) => handleFilterChange('sentimentFilter', value)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filter by sentiment" />
               </SelectTrigger>
@@ -296,7 +258,7 @@ export default function ReviewsPage() {
               </SelectContent>
             </Select>
             
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -309,80 +271,125 @@ export default function ReviewsPage() {
             
             <Button
               variant="outline"
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              onClick={() => handleFilterChange('sortOrder', filters.sortOrder === "asc" ? "desc" : "asc")}
             >
-              {sortOrder === "asc" ? "↑" : "↓"}
+              {filters.sortOrder === "asc" ? "↑" : "↓"}
             </Button>
+
+            {(filters.searchTerm || filters.ratingFilter !== 'all' || filters.sentimentFilter !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Reviews List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Reviews ({filteredReviews.length})</h2>
+        <h2 className="text-xl font-semibold">Reviews ({reviews.length})</h2>
         
-        {filteredReviews.map((review) => (
-          <Card key={review.id} className={`border-l-4 ${getSentimentColor(review.sentiment)}`}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    {renderStars(review.rating)}
-                    <span className="text-sm text-muted-foreground">
-                      {review.reviewDate 
-                        ? format(new Date(review.reviewDate), "MMM d, yyyy")
-                        : "Date unknown"
-                      }
-                    </span>
-                    {review.isVerified && (
-                      <Badge variant="outline" className="text-xs">Verified</Badge>
-                    )}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <>
+            {reviews.map((review) => (
+              <Card key={review.id} className={`border-l-4 ${getSentimentColor(review.sentiment)}`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        {renderStars(review.rating)}
+                        <span className="text-sm text-muted-foreground">
+                          {review.reviewDate 
+                            ? format(new Date(review.reviewDate), "MMM d, yyyy")
+                            : "Date unknown"
+                          }
+                        </span>
+                        {review.isVerified && (
+                          <Badge variant="outline" className="text-xs">Verified</Badge>
+                        )}
+                      </div>
+                      
+                      {review.title && (
+                        <h3 className="font-semibold text-lg">{review.title}</h3>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          Product: {review.product?.name || `#${review.productId}`}
+                        </span>
+                        {getSentimentBadge(review.sentiment)}
+                      </div>
+                    </div>
                   </div>
-                  
-                  {review.title && (
-                    <h3 className="font-semibold text-lg">{review.title}</h3>
-                  )}
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Product: {review.product?.name || `#${review.productId}`}
-                    </span>
-                    {getSentimentBadge(review.sentiment)}
-                  </div>
-                </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="space-y-4">
-                {review.content && (
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
-                    {review.content}
-                  </p>
-                )}
+                </CardHeader>
                 
-                {review.vendorResponse && (
-                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border-l-4 border-blue-500">
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                      Vendor Response:
-                    </p>
-                    <p className="text-blue-700 dark:text-blue-300 text-sm">
-                      {review.vendorResponse}
-                    </p>
+                <CardContent>
+                  <div className="space-y-4">
+                    {review.content && (
+                      <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {review.content}
+                      </p>
+                    )}
+                    
+                    {review.vendorResponse && (
+                      <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border-l-4 border-blue-500">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                          Vendor Response:
+                        </p>
+                        <p className="text-blue-700 dark:text-blue-300 text-sm">
+                          {review.vendorResponse}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Sentiment Update Controls */}
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={review.sentiment === 'positive' ? 'default' : 'outline'}
+                        onClick={() => handleSentimentUpdate(review.id, 'positive')}
+                      >
+                        Positive
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={review.sentiment === 'neutral' ? 'default' : 'outline'}
+                        onClick={() => handleSentimentUpdate(review.id, 'neutral')}
+                      >
+                        Neutral
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={review.sentiment === 'negative' ? 'default' : 'outline'}
+                        onClick={() => handleSentimentUpdate(review.id, 'negative')}
+                      >
+                        Negative
+                      </Button>
+                    </div>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-        
-        {filteredReviews.length === 0 && (
-          <Card>
-            <CardContent className="p-6 text-center">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">No reviews found matching your criteria</p>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ))}
+            
+            {reviews.length === 0 && (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No reviews found matching your criteria</p>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
       </div>
     </div>
