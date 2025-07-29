@@ -1,5 +1,18 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import {
+  selectFilteredCustomers,
+  selectCustomerMetrics,
+  selectCustomerFilters,
+  selectCustomersLoading,
+  selectCustomersError,
+} from "@/store/selectors";
+import {
+  fetchCustomers,
+  fetchCustomerMetrics,
+  setFilters,
+  clearFilters,
+} from "@/store/slices/customersSlice";
 import {
   Table,
   TableBody,
@@ -13,103 +26,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Users, TrendingUp, Calendar, DollarSign } from "lucide-react";
+import { Search, Users, TrendingUp, Calendar, DollarSign, Filter, X } from "lucide-react";
 import { format } from "date-fns";
-import type { Customer } from "@shared/schema";
-
-interface CustomerWithMetrics extends Customer {
-  lastPurchaseDate?: string;
-  segment: string;
-  recencyScore: number;
-  frequencyScore: number;
-  monetaryScore: number;
-}
 
 export default function CustomersPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [segmentFilter, setSegmentFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<string>("totalSpent");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const dispatch = useAppDispatch();
+  
+  // Select state from Redux
+  const customers = useAppSelector(selectFilteredCustomers);
+  const metrics = useAppSelector(selectCustomerMetrics);
+  const filters = useAppSelector(selectCustomerFilters);
+  const isLoading = useAppSelector(selectCustomersLoading);
+  const error = useAppSelector(selectCustomersError);
 
-  const { data: customers = [], isLoading, error } = useQuery<CustomerWithMetrics[]>({
-    queryKey: ["/api/customers"],
-  });
+  // Fetch data on component mount
+  useEffect(() => {
+    dispatch(fetchCustomers());
+    dispatch(fetchCustomerMetrics());
+  }, [dispatch]);
 
-  // Calculate customer segments and RFM scores
-  const customersWithRFM = customers.map(customer => {
-    // Calculate recency score (0-100, higher is better)
-    const daysSinceLastPurchase = customer.lastPurchaseDate 
-      ? Math.floor((Date.now() - new Date(customer.lastPurchaseDate).getTime()) / (1000 * 60 * 60 * 24))
-      : 365;
-    const recencyScore = Math.max(0, 100 - (daysSinceLastPurchase / 3.65));
+  const handleFilterChange = (key: string, value: string) => {
+    dispatch(setFilters({ [key]: value }));
+  };
 
-    // Calculate frequency score (based on order count)
-    const frequencyScore = Math.min(100, (customer.orderCount || 0) * 10);
-
-    // Calculate monetary score (based on total spent)
-    const monetaryScore = Math.min(100, parseFloat(customer.totalSpent || "0") / 10);
-
-    // Determine segment based on RFM scores
-    let segment = "new";
-    const avgScore = (recencyScore + frequencyScore + monetaryScore) / 3;
-    
-    if (avgScore >= 70) segment = "champions";
-    else if (avgScore >= 50) segment = "loyal_customers";
-    else if (recencyScore >= 60 && frequencyScore < 30) segment = "new_customers";
-    else if (recencyScore < 30) segment = "at_risk";
-    else segment = "potential_loyalists";
-
-    return {
-      ...customer,
-      segment,
-      recencyScore: Math.round(recencyScore),
-      frequencyScore: Math.round(frequencyScore),
-      monetaryScore: Math.round(monetaryScore),
-    };
-  });
-
-  // Filter and sort customers
-  const filteredCustomers = customersWithRFM
-    .filter(customer => {
-      const matchesSearch = 
-        customer.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesSegment = segmentFilter === "all" || customer.segment === segmentFilter;
-      
-      return matchesSearch && matchesSegment;
-    })
-    .sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case "totalSpent":
-          aValue = parseFloat(a.totalSpent || "0");
-          bValue = parseFloat(b.totalSpent || "0");
-          break;
-        case "orderCount":
-          aValue = a.orderCount || 0;
-          bValue = b.orderCount || 0;
-          break;
-        case "registrationDate":
-          aValue = new Date(a.registrationDate || 0).getTime();
-          bValue = new Date(b.registrationDate || 0).getTime();
-          break;
-        case "rfmScore":
-          aValue = (a.recencyScore + a.frequencyScore + a.monetaryScore) / 3;
-          bValue = (b.recencyScore + b.frequencyScore + b.monetaryScore) / 3;
-          break;
-        default:
-          aValue = a.firstName;
-          bValue = b.firstName;
-      }
-      
-      if (sortOrder === "desc") {
-        return aValue > bValue ? -1 : 1;
-      }
-      return aValue < bValue ? -1 : 1;
-    });
+  const handleClearFilters = () => {
+    dispatch(clearFilters());
+  };
 
   const getSegmentBadge = (segment: string) => {
     const variants = {
@@ -143,21 +85,21 @@ export default function CustomersPage() {
     return "text-red-600 dark:text-red-400";
   };
 
-  // Calculate summary metrics
-  const totalCustomers = customers.length;
-  const totalRevenue = customers.reduce((sum, c) => sum + parseFloat(c.totalSpent || "0"), 0);
-  const averageOrderValue = totalRevenue / Math.max(1, customers.reduce((sum, c) => sum + (c.orderCount || 0), 0));
-  const segmentCounts = customersWithRFM.reduce((acc, c) => {
-    acc[c.segment] = (acc[c.segment] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
   if (error) {
     return (
       <div className="p-6">
         <Card>
           <CardContent className="p-6">
-            <p className="text-red-600 dark:text-red-400">Failed to load customer data</p>
+            <p className="text-red-600 dark:text-red-400">Failed to load customer data: {error}</p>
+            <Button 
+              onClick={() => {
+                dispatch(fetchCustomers());
+                dispatch(fetchCustomerMetrics());
+              }}
+              className="mt-2"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -181,7 +123,9 @@ export default function CustomersPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCustomers.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : metrics?.totalCustomers?.toLocaleString() || customers.length.toLocaleString()}
+            </div>
           </CardContent>
         </Card>
 
@@ -191,7 +135,10 @@ export default function CustomersPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">
+              ${isLoading ? "..." : metrics?.totalRevenue?.toLocaleString() || 
+                customers.reduce((sum, c) => sum + parseFloat(c.totalSpent || "0"), 0).toLocaleString()}
+            </div>
           </CardContent>
         </Card>
 
@@ -201,7 +148,11 @@ export default function CustomersPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${averageOrderValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ${isLoading ? "..." : metrics?.averageOrderValue?.toFixed(2) || 
+                (customers.reduce((sum, c) => sum + parseFloat(c.totalSpent || "0"), 0) / 
+                 Math.max(1, customers.reduce((sum, c) => sum + (c.orderCount || 0), 0))).toFixed(2)}
+            </div>
           </CardContent>
         </Card>
 
@@ -211,7 +162,10 @@ export default function CustomersPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{segmentCounts.champions || 0}</div>
+            <div className="text-2xl font-bold">
+              {isLoading ? "..." : metrics?.segmentCounts?.champions || 
+                customers.filter(c => c.segment === 'champions').length}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -224,13 +178,13 @@ export default function CustomersPage() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search customers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={filters.searchTerm}
+                onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
                 className="pl-10"
               />
             </div>
             
-            <Select value={segmentFilter} onValueChange={setSegmentFilter}>
+            <Select value={filters.segment} onValueChange={(value) => handleFilterChange('segment', value)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Filter by segment" />
               </SelectTrigger>
@@ -244,7 +198,7 @@ export default function CustomersPage() {
               </SelectContent>
             </Select>
             
-            <Select value={sortBy} onValueChange={setSortBy}>
+            <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange('sortBy', value)}>
               <SelectTrigger className="w-full md:w-48">
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
@@ -259,10 +213,22 @@ export default function CustomersPage() {
             
             <Button
               variant="outline"
-              onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              onClick={() => handleFilterChange('sortOrder', filters.sortOrder === "asc" ? "desc" : "asc")}
             >
-              {sortOrder === "asc" ? "↑" : "↓"}
+              {filters.sortOrder === "asc" ? "↑" : "↓"}
             </Button>
+
+            {(filters.searchTerm || filters.segment !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearFilters}
+                className="flex items-center gap-2"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -270,56 +236,62 @@ export default function CustomersPage() {
       {/* Customer Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Customer List ({filteredCustomers.length})</CardTitle>
+          <CardTitle>Customer List ({customers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Segment</TableHead>
-                  <TableHead>Orders</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Registration</TableHead>
-                  <TableHead>RFM Scores</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">
-                      {customer.firstName} {customer.lastName}
-                    </TableCell>
-                    <TableCell>{customer.email}</TableCell>
-                    <TableCell>{getSegmentBadge(customer.segment)}</TableCell>
-                    <TableCell>{customer.orderCount || 0}</TableCell>
-                    <TableCell>${parseFloat(customer.totalSpent || "0").toFixed(2)}</TableCell>
-                    <TableCell>
-                      {customer.registrationDate 
-                        ? format(new Date(customer.registrationDate), "MMM d, yyyy")
-                        : "N/A"
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2 text-sm">
-                        <span className={`font-medium ${getRFMColor(customer.recencyScore)}`}>
-                          R:{customer.recencyScore}
-                        </span>
-                        <span className={`font-medium ${getRFMColor(customer.frequencyScore)}`}>
-                          F:{customer.frequencyScore}
-                        </span>
-                        <span className={`font-medium ${getRFMColor(customer.monetaryScore)}`}>
-                          M:{customer.monetaryScore}
-                        </span>
-                      </div>
-                    </TableCell>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Segment</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead>Total Spent</TableHead>
+                    <TableHead>Registration</TableHead>
+                    <TableHead>RFM Scores</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {customers.map((customer) => (
+                    <TableRow key={customer.id}>
+                      <TableCell className="font-medium">
+                        {customer.firstName} {customer.lastName}
+                      </TableCell>
+                      <TableCell>{customer.email}</TableCell>
+                      <TableCell>{getSegmentBadge(customer.segment)}</TableCell>
+                      <TableCell>{customer.orderCount || 0}</TableCell>
+                      <TableCell>${parseFloat(customer.totalSpent || "0").toFixed(2)}</TableCell>
+                      <TableCell>
+                        {customer.registrationDate 
+                          ? format(new Date(customer.registrationDate), "MMM d, yyyy")
+                          : "N/A"
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2 text-sm">
+                          <span className={`font-medium ${getRFMColor(customer.recencyScore)}`}>
+                            R:{customer.recencyScore}
+                          </span>
+                          <span className={`font-medium ${getRFMColor(customer.frequencyScore)}`}>
+                            F:{customer.frequencyScore}
+                          </span>
+                          <span className={`font-medium ${getRFMColor(customer.monetaryScore)}`}>
+                            M:{customer.monetaryScore}
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
