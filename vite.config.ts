@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+// Import for runtime error overlay
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
@@ -33,5 +34,8 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    allowedHosts: [
+      "dae825ce-6741-4128-b456-42bc8a81c10c-00-2mn6e8zmomfe3.picard.replit.dev",
+    ],
   },
 });
