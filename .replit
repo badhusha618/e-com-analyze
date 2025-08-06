@@ -20,7 +20,7 @@ PORT = "5000"
 DATABASE_URL = "postgresql://user:password@localhost:5432/ecommerce_analytics"
 
 [workflows]
-runButton = "Project"
+runButton = "Start Frontend"
 
 [[workflows.workflow]]
 name = "Project"
@@ -39,3 +39,12 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Start Frontend"
+author = 46046417
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run dev -- --host 0.0.0.0 --port 5000"
