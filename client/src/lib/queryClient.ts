@@ -7,23 +7,27 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+
 export async function apiRequest(
   method: string,
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const token = localStorage.getItem('authToken');
+  const token = localStorage.getItem('auth_token');
   const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const res = await fetch(url, {
+  // Ensure URL is properly prefixed with API base URL
+  const apiUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
+  const res = await fetch(apiUrl, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
 
   await throwIfResNotOk(res);
@@ -36,16 +40,19 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('auth_token');
     const headers: Record<string, string> = {};
     
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(queryKey.join("/") as string, {
+    // Construct the full API URL
+    const url = queryKey.join("/") as string;
+    const apiUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+
+    const res = await fetch(apiUrl, {
       headers,
-      credentials: "include",
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -53,7 +60,10 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const data = await res.json();
+    
+    // Handle Spring Boot API response format
+    return data.data || data;
   };
 
 export const queryClient = new QueryClient({
