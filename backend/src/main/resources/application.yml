@@ -11,34 +11,32 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: none  # Let Flyway handle schema
-    show-sql: false
+      ddl-auto: create-drop  # For demo, recreate schema
+    show-sql: true
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
   
-  # Flyway Configuration
+  # Flyway Configuration - disabled for demo
   flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
+    enabled: false
   
-  # Redis Configuration
-  redis:
-    host: ${REDIS_HOST:localhost}
-    port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
-    timeout: 2000ms
-    jedis:
-      pool:
-        max-active: 8
-        max-idle: 8
-        min-idle: 0
+  # Redis Configuration (optional for demo)
+  # redis:
+  #   host: ${REDIS_HOST:localhost}
+  #   port: ${REDIS_PORT:6379}
+  #   password: ${REDIS_PASSWORD:}
+  #   timeout: 2000ms
+  #   jedis:
+  #     pool:
+  #       max-active: 8
+  #       max-idle: 8
+  #       min-idle: 0
   
-  # Kafka Configuration
-  kafka:
-    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+  # Kafka Configuration (optional for demo)
+  # kafka:
+  #   bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -52,7 +50,7 @@ spring:
 
 # Server Configuration
 server:
-  port: ${PORT:8080}
+  port: 8080
   servlet:
     context-path: /api/v1
 

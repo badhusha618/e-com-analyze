@@ -26,7 +26,7 @@ public class DashboardService {
     private final AlertRepository alertRepository;
     private final SalesMetricRepository salesMetricRepository;
 
-    @Cacheable(value = "dashboardMetrics", key = "'dashboard-overview'")
+    // @Cacheable(value = "dashboardMetrics", key = "'dashboard-overview'") // Disabled for demo
     public DashboardMetricsDTO getDashboardMetrics() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0);
@@ -56,7 +56,7 @@ public class DashboardService {
         );
     }
 
-    @Cacheable(value = "salesData", key = "'sales-chart-7days'")
+    // @Cacheable(value = "salesData", key = "'sales-chart-7days'") // Disabled for demo
     public List<SalesChartDTO> getSalesChartData() {
         LocalDateTime endDate = LocalDateTime.now();
         LocalDateTime startDate = endDate.minusDays(7);

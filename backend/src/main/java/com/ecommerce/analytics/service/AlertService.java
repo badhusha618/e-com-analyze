@@ -3,8 +3,8 @@ package com.ecommerce.analytics.service;
 import com.ecommerce.analytics.entity.Alert;
 import com.ecommerce.analytics.repository.AlertRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
+// import org.springframework.cache.annotation.CacheEvict;  // Disabled for demo
+// import org.springframework.cache.annotation.Cacheable; // Disabled for demo
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,9 +19,9 @@ import java.util.Map;
 public class AlertService {
 
     private final AlertRepository alertRepository;
-    private final KafkaProducerService kafkaProducerService;
+    // private final KafkaProducerService kafkaProducerService; // Disabled for demo
 
-    @Cacheable(value = "alerts", key = "'unread'")
+    // @Cacheable(value = "alerts", key = "'unread'") // Disabled for demo
     public List<Alert> getUnreadAlerts() {
         return alertRepository.findUnreadAlerts();
     }
@@ -39,7 +39,7 @@ public class AlertService {
         return alertRepository.findByType(type);
     }
 
-    @CacheEvict(value = "alerts", allEntries = true)
+    // @CacheEvict(value = "alerts", allEntries = true) // Disabled for demo
     public Alert createAlert(Alert alert) {
         Alert savedAlert = alertRepository.save(alert);
         
@@ -48,12 +48,12 @@ public class AlertService {
         eventData.put("alertType", alert.getType());
         eventData.put("severity", alert.getSeverity());
         eventData.put("title", alert.getTitle());
-        kafkaProducerService.sendAlertEvent("ALERT_CREATED", savedAlert.getId(), eventData);
+        // kafkaProducerService.sendAlertEvent("ALERT_CREATED", savedAlert.getId(), eventData); // Disabled for demo
         
         return savedAlert;
     }
 
-    @CacheEvict(value = "alerts", allEntries = true)
+    // @CacheEvict(value = "alerts", allEntries = true) // Disabled for demo
     public Alert markAsRead(Long alertId) {
         Alert alert = alertRepository.findById(alertId)
                 .orElseThrow(() -> new RuntimeException("Alert not found"));
@@ -64,7 +64,7 @@ public class AlertService {
         // Send Kafka event
         Map<String, Object> eventData = new HashMap<>();
         eventData.put("alertType", alert.getType());
-        kafkaProducerService.sendAlertEvent("ALERT_READ", alertId, eventData);
+        // kafkaProducerService.sendAlertEvent("ALERT_READ", alertId, eventData); // Disabled for demo
         
         return updatedAlert;
     }
