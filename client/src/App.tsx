@@ -18,7 +18,7 @@ import UserManagementPage from "./pages/UserManagementPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 import NotFound from "./pages/not-found";
-import { useAuth, AuthProvider } from "./hooks/useAuth";
+import { useAuth, AuthProvider } from "./hooks/useAuthSimple";
 
 function Router() {
   const { user, isLoading } = useAuth();
