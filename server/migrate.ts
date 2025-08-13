@@ -1,13 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { migrate } from 'drizzle-orm/neon-serverless/migrator';
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import * as schema from '@shared/schema';
 import { sql } from 'drizzle-orm';
 import { config } from './config';
-import ws from 'ws';
-
-// Configure WebSocket for Neon
-neonConfig.webSocketConstructor = ws;
 
 // Database migration utility
 export class DatabaseMigrator {
@@ -16,7 +12,7 @@ export class DatabaseMigrator {
 
   constructor(connectionString: string) {
     this.pool = new Pool({ connectionString });
-    this.db = drizzle({ client: this.pool, schema });
+    this.db = drizzle(this.pool, { schema });
   }
 
   // Drop all tables and recreate them (for local development)
